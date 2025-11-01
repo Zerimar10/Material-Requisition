@@ -9,7 +9,72 @@ from dotenv import load_dotenv
 # ==============================
 # CONFIGURACIÓN INICIAL
 # ==============================
-st.set_page_config(page_title="Sistema de Requisiciones de Almacén", layout="wide")
+st.set_page_config(
+    page_title="Nordson Warehouse System",
+    page_icon="nordson_logo.png",
+    layout="wide"
+)
+
+# --- Encabezado corporativo ---
+from PIL import Image
+
+logo = Image.open("nordson_logo.png")
+c1, c2 = st.columns([1, 5], vertical_alignment="center")
+with c1:
+    st.image(logo, width=110)
+with c2:
+    st.markdown(
+        """
+        <h1 style='color:#0072CE; font-weight:700; margin-bottom:4px;'>
+            Nordson Warehouse System
+        </h1>
+        <h5 style='color:#5F6C7B; margin-top:0;'>
+            Sistema de requisiciones de almacén
+        </h5>
+        """,
+        unsafe_allow_html=True
+    )
+
+# --- Estilos finos y línea divisoria ---
+st.markdown(
+    """
+    <style>
+      /* Línea divisoria */
+      hr {margin: 0.8rem 0; border: 1px solid #E0E6EE;}
+      
+      /* Botones más “corporativos” */
+      .stButton>button {
+        border-radius: 10px !important;
+        padding: 0.55rem 1rem !important;
+        font-weight: 600 !important;
+        background-color: #0072CE !important;
+        color: white !important;
+        border: none !important;
+      }
+      .stButton>button:hover {
+        background-color: #0059A6 !important;
+      }
+
+      /* Inputs redondeados */
+      .stTextInput>div>div>input,
+      .stNumberInput input,
+      .stSelectbox>div>div>div {
+        border-radius: 8px !important;
+      }
+
+      /* Encabezados de secciones */
+      h2, h3 { color:#0A2540 !important; }
+
+      /* Compactar editor y tablas */
+      [data-testid="stDataFrame"] div[role="gridcell"],
+      [data-testid="stDataFrame"] div[role="columnheader"] {
+          font-size: 0.92rem !important;
+      }
+    </style>
+    <hr>
+    """,
+    unsafe_allow_html=True
+)
 
 # Cargar variables del archivo .env
 load_dotenv()
