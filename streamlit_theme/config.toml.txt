@@ -1,7 +1,0 @@
-# .streamlit/config.toml
-[theme]
-primaryColor = "#0072CE" # Azul Nordson (botones, acentos)
-backgroundColor = "#FFFFFF" # Fondo principal
-secondaryBackgroundColor = "#F5F7FB" # Tarjetas/expansores/tablas
-textColor = "#0A2540" # Texto principal
-font = "sans serif" # (puedes probar "monospace" o "serif")
