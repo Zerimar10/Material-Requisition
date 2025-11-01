@@ -1,0 +1,8 @@
+ID,Fecha/Hora,Área,Work Order,Número de parte,Número de lote,Cantidad,Motivo,Estatus,Almacenista,Hora de recepción,Lote,Status,Issue
+ce4d5922-2705-46c1-a755-854a993ee130,2025-10-31 17:09:01,Introducer,356623,85235,,60,Proceso,Entregado,,,,,False
+4e1f85c2-2938-4783-8fc8-41d6124de350,2025-10-31 16:16:08,PU3,853305,21308,,60,Proceso,Entregado,,,,,False
+3616212d-3b51-41ca-8af4-fbf0cff7d165,2025-10-31 16:05:54,Introducer,499564,29409-010,,1,Proceso,Entregado,,,,,False
+1536f3e4-af16-4c67-ac40-29a7258789be,2025-10-31 16:00:48,PU1,499565,29409-011,,1,Proceso,Pendiente,,,,,False
+56a511ac-093d-429e-add7-4c49425c89b6,2025-10-31 15:59:55,Introducer,499564,29409-010,,1,Proceso,Pendiente,,,,,False
+1fe74999-9173-4ace-bda8-265dd7a760cc,,,499564,,,1,Proceso,,,2025-10-31 12:22:34,,Pendiente,False
+af78a48e-3684-4e12-9638-d112a73bd2a7,,,499564,29409-010,,299,Proceso,,,2025-10-31 12:22:58,,Pendiente,False
