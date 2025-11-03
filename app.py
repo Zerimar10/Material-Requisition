@@ -190,7 +190,7 @@ if page == "🏭 Producción":
         area = st.selectbox("Área", [
             "Introducer", "PU1", "PU2", "PU3", "PU4",
             "PVC1", "PVC2", "PVC3A", "PVC3B", "PVC6", "PVC7", "PVC8",
-            "PVC9", "PVCS", "PAK1", "MASM1", "MLGY", "MM CL", "MM MOLD", "MM FP", "MIXING", "RESORTES"
+            "PVC9", "PVCS", "PAK1", "MASM1", "MGLY", "MM CL", "MM MOLD", "MM FP", "MIXING", "RESORTES"
         ])
         work_order = st.text_input("Work Order", placeholder="")
         numero_parte = st.text_input("Número de parte")
@@ -372,3 +372,4 @@ if page == "🏢 Almacén":
             st.session_state["page"] = "🏢 Almacén"
 
             st.rerun()
+
