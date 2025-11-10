@@ -16,7 +16,7 @@ st.set_page_config(page_title="Sistema de Requisiciones de Almacén", layout="wi
 # Cargar variables del archivo .env (si existe)
 load_dotenv()
 SMARTSHEET_TOKEN = os.getenv("SMARTSHEET_TOKEN") or "TU_TOKEN_DE_API"
-SHEET_ID = "9WVHx67PGhCqV7wTf469M888CCPj5pwmn2lY78hm1" # tu hoja real
+SHEET_ID = "9WVHx67PGhCqV7wvf469M888CCPJ5pwmm2V78hm1?view=grid" # tu hoja real
 CSV_FILE = "requisiciones.csv"
 
 # =====================================
@@ -165,5 +165,6 @@ with tabs[1]:
         df_filtrado = df_filtrado[df_filtrado["Estatus"].isin(estatus_filtro)]
 
     st.dataframe(df_filtrado, use_container_width=True, hide_index=True)
+
 
 
