@@ -47,8 +47,8 @@ def cargar_requisiciones():
     if os.path.exists(CSV_FILE):
         return pd.read_csv(CSV_FILE)
     else:
-        columnas = ["ID", "Área", "Fecha/Hora", "Work Order", "Número de Parte",
-                    "Cantidad", "Motivo", "Estatus", "Almacenista", "Issue"]
+        columnas = ["ID", "Area", "Fecha/Hora", "Work Order", "Número de Parte",
+                    "Cantidad", "Motivo", "Status", "Almacenista", "Issue"]
         return pd.DataFrame(columns=columnas)
 
 def guardar_requisiciones(df):
@@ -63,7 +63,7 @@ def guardar_en_smartsheet(datos):
         "Número de Parte": 7340355360704388,
         "Cantidad": 4306604313497476,
         "Motivo": 8810203940867972,
-        "Estatus": 2252171519129694,
+        "Status": 2252171519129694,
         "Almacenista": 4728816778534660,
         "Issue": 2477016946878212,
     }
@@ -165,6 +165,7 @@ with tabs[1]:
         df_filtrado = df_filtrado[df_filtrado["Estatus"].isin(estatus_filtro)]
 
     st.dataframe(df_filtrado, use_container_width=True, hide_index=True)
+
 
 
 
