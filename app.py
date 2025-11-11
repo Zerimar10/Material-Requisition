@@ -127,13 +127,13 @@ with tabs[0]:
         if submitted:
             nueva_requisicion = {
                 "ID": str(uuid.uuid4())[:8],
-                "Área": area,
+                "Area": area,
                 "Fecha/Hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "Work Order": work_order,
                 "Número de Parte": numero_parte,
                 "Cantidad": cantidad,
                 "Motivo": motivo,
-                "Estatus": proceso,
+                "Status": proceso,
                 "Almacenista": almacenista,
                 "Issue": issue,
             }
@@ -165,6 +165,7 @@ with tabs[1]:
         df_filtrado = df_filtrado[df_filtrado["Estatus"].isin(estatus_filtro)]
 
     st.dataframe(df_filtrado, use_container_width=True, hide_index=True)
+
 
 
 
