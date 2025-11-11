@@ -5,6 +5,7 @@ import os
 import uuid
 import requests
 from dotenv import load_dotenv
+from PIL import Image
 
 # ======================================================
 # CONFIGURACIÓN INICIAL
@@ -15,11 +16,10 @@ st.set_page_config(page_title="Sistema de Requisiciones de Almacén", layout="wi
 load_dotenv()
 CLAVE_ALMACEN = os.getenv("CLAVE_ALMACEN", "almacen2025")
 SMARTSHEET_TOKEN = os.getenv("SMARTSHEET_TOKEN")
-SHEET_ID = "9WVHx67PGhCqV7wvf469M888CCPJ5pwmm2V78hm1" # tu ID real de hoja
+SHEET_ID = "9WVHx67PGhCqV7wt469M888CCPJ5pwmm2lY78hm1" # ID de hoja correcto
 CSV_FILE = "requisiciones.csv"
 
 # Encabezado corporativo
-from PIL import Image
 logo = Image.open("nordson_logo.png")
 c1, c2 = st.columns([1, 5], vertical_alignment="center")
 with c1:
@@ -171,12 +171,10 @@ with tabs[1]:
         if area_filtro:
             df_filtrado = df_filtrado[df_filtrado["Area"].isin(area_filtro)]
         if status_filtro:
-            df_filtrado = df_filtrado[df_filtrado["Status"].isin(Status_filtro)]
+            df_filtrado = df_filtrado[df_filtrado["Status"].isin(status_filtro)]
         if buscar:
             df_filtrado = df_filtrado[df_filtrado.apply(lambda row: buscar.lower() in str(row.values).lower(), axis=1)]
 
         st.dataframe(df_filtrado, use_container_width=True, hide_index=True)
     else:
         st.info("No hay requisiciones registradas aún.")
-
-
