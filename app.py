@@ -11,6 +11,33 @@ from dotenv import load_dotenv
 # ==============================
 st.set_page_config(page_title="Sistema de Requisiciones de Almacén", layout="wide")
 
+from PIL import Image
+
+# Icono de página (favicon y barra del navegador)
+st.set_page_config(page_title="Sistema de Requisiciones de Almacén",
+                   page_icon="nordson_logo.png",
+                   layout="wide")
+
+# Encabezado corporativo
+logo = Image.open("nordson_logo.png")
+c1, c2 = st.columns([1, 5], vertical_alignment="center")
+with c1:
+    st.image(logo, width=110)
+with c2:
+    st.markdown(
+        """
+        <h1 style='color:#0072CE; font-weight:700; margin-bottom:4px;'>
+          Nordson Warehouse System
+        </h1>
+        <h5 style='color:#5F6C7B; margin-top:0;'>
+          Sistema de requisiciones de almacén
+        </h5>
+        """,
+        unsafe_allow_html=True
+    )
+
+st.markdown("---")
+
 # Cargar variables del archivo .env
 load_dotenv()
 CLAVE_ALMACEN = os.getenv("CLAVE_ALMACEN", "almacen2025")
@@ -306,6 +333,7 @@ if page == "🏢 Almacén":
             time.sleep(10)
             st.session_state["page"] = "🏢 Almacén"
             st.rerun()
+
 
 
 
