@@ -72,7 +72,7 @@ def ss_default(key, value):
 def guardar_csv(df: pd.DataFrame):
     out = df.copy()
     out["Fecha/Hora"] = pd.to_datetime(out["Fecha/Hora"], errors="coerce").dt.strftime("%Y-%m-%d %H:%M:%S")
-    out.to_csv(CSV_FILE, index=False)
+    out.to_csv(CSV_FILE, index=False, encoding="utf-8-sig")
 
 def limpiar_none(v):
     return "" if (pd.isna(v) or str(v).strip().lower() == "none") else v
@@ -333,6 +333,7 @@ if page == "🏢 Almacén":
             time.sleep(10)
             st.session_state["page"] = "🏢 Almacén"
             st.rerun()
+
 
 
 
