@@ -142,7 +142,7 @@ with tabs[0]:
             guardar_requisiciones(requisiciones)
             guardar_en_smartsheet(nueva_requisicion)
             st.success("✅ Requisición registrada correctamente.")
-            st.experimental_rerun()
+            st.rerun()
 
 # =====================================
 # TAB DE ALMACÉN
@@ -165,6 +165,7 @@ with tabs[1]:
         df_filtrado = df_filtrado[df_filtrado["Estatus"].isin(estatus_filtro)]
 
     st.dataframe(df_filtrado, use_container_width=True, hide_index=True)
+
 
 
 
