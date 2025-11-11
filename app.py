@@ -11,13 +11,6 @@ from dotenv import load_dotenv
 # ==============================
 st.set_page_config(page_title="Sistema de Requisiciones de Almacén", layout="wide")
 
-from PIL import Image
-
-# Icono de página (favicon y barra del navegador)
-st.set_page_config(page_title="Sistema de Requisiciones de Almacén",
-                   page_icon="nordson_logo.png",
-                   layout="wide")
-
 # Cargar variables del archivo .env
 load_dotenv()
 CLAVE_ALMACEN = os.getenv("CLAVE_ALMACEN", "almacen2025")
@@ -313,6 +306,7 @@ if page == "🏢 Almacén":
             time.sleep(10)
             st.session_state["page"] = "🏢 Almacén"
             st.rerun()
+
 
 
 
