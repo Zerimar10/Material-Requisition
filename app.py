@@ -1,178 +1,180 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-import uuid
 import os
-import json
+import uuid
 import requests
 from dotenv import load_dotenv
-from PIL import Image
 
-# =====================================
+# ======================================================
 # CONFIGURACIÓN INICIAL
-# =====================================
+# ======================================================
 st.set_page_config(page_title="Sistema de Requisiciones de Almacén", layout="wide")
 
-# Cargar variables del archivo .env (si existe)
+# Cargar variables del archivo .env
 load_dotenv()
-SMARTSHEET_TOKEN = os.getenv("SMARTSHEET_TOKEN") or "TU_TOKEN_DE_API"
-SHEET_ID = "9WVHx67PGhCqV7wvf469M888CCPJ5pwmm2V78hm1" # tu hoja real
+CLAVE_ALMACEN = os.getenv("CLAVE_ALMACEN", "almacen2025")
+SMARTSHEET_TOKEN = os.getenv("SMARTSHEET_TOKEN")
+SHEET_ID = "9WVHx67PGhCqV7wt469M888CCPJ5pwmm2lY78hm1" # tu ID real de hoja
 CSV_FILE = "requisiciones.csv"
 
-# =====================================
-# ENCABEZADO CORPORATIVO
-# =====================================
-try:
-    logo = Image.open("nordson_logo.png")
-    col1, col2 = st.columns([1, 5], vertical_alignment="center")
-    with col1:
-        st.image(logo, width=110)
-    with col2:
-        st.markdown(
-            """
-            <h1 style='color:#004C97; font-weight:700; margin-bottom:5px;'>Nordson Warehouse System</h1>
-            <h5 style='color:#5F6B7B; margin-top:0;'>Sistema de Requisiciones de Almacén</h5>
-            """,
-            unsafe_allow_html=True
-        )
-except:
-    st.warning("⚠️ No se encontró el archivo 'nordson_logo.png'. El logo no se mostrará.")
+# Encabezado corporativo
+from PIL import Image
+logo = Image.open("nordson_logo.png")
+c1, c2 = st.columns([1, 5], vertical_alignment="center")
+with c1:
+    st.image(logo, width=110)
+with c2:
+    st.markdown(
+        """
+        <h1 style="color:#0072CE; font-weight:700; margin-bottom:4px;">Nordson Warehouse System</h1>
+        <h5 style="color:#5F6C7B; margin-top:0;">Sistema de requisiciones de almacén</h5>
+        """,
+        unsafe_allow_html=True,
+    )
 
-st.markdown("<hr style='margin-top:-10px;'>", unsafe_allow_html=True)
+st.markdown("---")
 
-# =====================================
+# ======================================================
 # FUNCIONES AUXILIARES
-# =====================================
-def cargar_requisiciones():
-    if os.path.exists(CSV_FILE):
-        return pd.read_csv(CSV_FILE)
-    else:
-        columnas = ["ID", "Area", "Fecha/Hora", "Work Order", "Número de Parte",
-                    "Cantidad", "Motivo", "Status", "Almacenista", "Issue"]
-        return pd.DataFrame(columns=columnas)
-
-def guardar_requisiciones(df):
-    df.to_csv(CSV_FILE, index=False)
-
-# Enviar una nueva requisición a Smartsheet
-def guardar_en_smartsheet(datos):
-    columnas = {
-        "Area": 6750550919648644,
-        "Fecha/Hora": 5178655547019140,
-        "Work Order": 2926855733333892,
-        "Número de Parte": 7340355360704388,
-        "Cantidad": 4306604313497476,
-        "Motivo": 8810203940867972,
-        "Status": 2252171519129694,
-        "Almacenista": 4728816778534660,
-        "Issue": 2477016946878212,
-    }
-
-    row = {
-        "toBottom": True,
-        "cells": [
-            {"columnId": columnas["Area"], "value": datos["Area"]},
-            {"columnId": columnas["Fecha/Hora"], "value": datos["Fecha/Hora"]},
-            {"columnId": columnas["Work Order"], "value": datos["Work Order"]},
-            {"columnId": columnas["Número de Parte"], "value": datos["Número de Parte"]},
-            {"columnId": columnas["Cantidad"], "value": datos["Cantidad"]},
-            {"columnId": columnas["Motivo"], "value": datos["Motivo"]},
-            {"columnId": columnas["Status"], "value": datos["Status"]},
-            {"columnId": columnas["Almacenista"], "value": datos["Almacenista"]},
-            {"columnId": columnas["Issue"], "value": datos["Issue"]},
-        ],
-    }
-
-    url = f"https://api.smartsheet.com/2.0/sheets/{SHEET_ID}/rows"
-    headers = {
-        "Authorization": f"Bearer {SMARTSHEET_TOKEN}",
-        "Content-Type": "application/json"
-    }
-
+# ======================================================
+def guardar_en_smartsheet(data):
+    """Guarda una requisición nueva en Smartsheet."""
     try:
-        response = requests.post(url, headers=headers, data=json.dumps({"rows": [row]}), verify=False)
-        response.raise_for_status()
-        st.success("✅ Requisición guardada también en Smartsheet.")
-    except Exception as e:
-        st.warning(f"⚠️ No se pudo guardar en Smartsheet: {e}")
+        headers = {
+            "Authorization": f"Bearer {SMARTSHEET_TOKEN}",
+            "Content-Type": "application/json"
+        }
 
-# =====================================
+        columnas = {
+            "Area": 6750550919648644,
+            "Fecha/Hora": 5178655547101940,
+            "Work Order": 292685573333892,
+            "Número de Parte": 7340355360704388,
+            "Cantidad": 4306064313497476,
+            "Motivo": 8810230940867972,
+            "Estatus": 2252171519129644,
+            "Almacenista": 4728816778536460,
+            "Issue": 2477016694878212
+        }
+
+        row = {
+            "toBottom": True,
+            "cells": [
+                {"columnId": columnas["Area"], "value": data["Area"]},
+                {"columnId": columnas["Fecha/Hora"], "value": data["Fecha/Hora"]},
+                {"columnId": columnas["Work Order"], "value": data["Work Order"]},
+                {"columnId": columnas["Número de Parte"], "value": data["Número de Parte"]},
+                {"columnId": columnas["Cantidad"], "value": data["Cantidad"]},
+                {"columnId": columnas["Motivo"], "value": data["Motivo"]},
+                {"columnId": columnas["Estatus"], "value": data["Estatus"]},
+                {"columnId": columnas["Almacenista"], "value": data["Almacenista"]},
+                {"columnId": columnas["Issue"], "value": data["Issue"]}
+            ]
+        }
+
+        url = f"https://api.smartsheet.com/2.0/sheets/{SHEET_ID}/rows"
+        r = requests.post(url, headers=headers, json={"rows": [row]})
+        r.raise_for_status()
+        return True
+
+    except Exception as e:
+        st.warning(f"No se pudo guardar en Smartsheet: {e}")
+        return False
+
+
+def leer_smartsheet():
+    """Lee las requisiciones directamente desde Smartsheet."""
+    try:
+        headers = {"Authorization": f"Bearer {SMARTSHEET_TOKEN}"}
+        url = f"https://api.smartsheet.com/2.0/sheets/{SHEET_ID}"
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+
+        columnas = {col["id"]: col["title"] for col in data["columns"]}
+        registros = []
+        for row in data["rows"]:
+            fila = {}
+            for cell in row["cells"]:
+                col_name = columnas.get(cell["columnId"], "Desconocido")
+                fila[col_name] = cell.get("displayValue", "")
+            registros.append(fila)
+        return pd.DataFrame(registros)
+
+    except Exception as e:
+        st.warning(f"No se pudo leer desde Smartsheet: {e}")
+        if os.path.exists(CSV_FILE):
+            return pd.read_csv(CSV_FILE)
+        return pd.DataFrame()
+
+# ======================================================
 # INTERFAZ PRINCIPAL
-# =====================================
+# ======================================================
 tabs = st.tabs(["📦 Producción", "🏭 Almacén"])
 
-# =====================================
-# TAB DE PRODUCCIÓN
-# =====================================
+# ------------------------------------------------------
+# TAB 1: PRODUCCIÓN
+# ------------------------------------------------------
 with tabs[0]:
     st.subheader("Nueva Requisición")
+    area = st.selectbox("Área", ["Introducer", "PU", "PVC", "USMCA", "Tecate"])
+    work_order = st.text_input("Work Order")
+    numero_parte = st.text_input("Número de Parte")
+    cantidad = st.number_input("Cantidad", min_value=1, step=1)
+    motivo = st.text_input("Motivo", "Proceso")
+    estatus = "Pendiente"
+    almacenista = ""
+    issue = False
 
-    # Cargar data existente
-    requisiciones = cargar_requisiciones()
+    if st.button("Enviar requisición"):
+        nueva_req = {
+            "ID": str(uuid.uuid4()),
+            "Area": area,
+            "Fecha/Hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "Work Order": work_order,
+            "Número de Parte": numero_parte,
+            "Cantidad": cantidad,
+            "Motivo": motivo,
+            "Estatus": estatus,
+            "Almacenista": almacenista,
+            "Issue": issue
+        }
 
-    with st.form("form_requisicion"):
-        area = st.selectbox("Area", ["Introducer", "PU1", "PU2", "PU3", "PU4", "PVC1", "PVC2",
-                                     "PVC3A", "PVC3B", "PVC6", "PVC7", "PVCS", "PAK1",
-                                     "MM CL", "MM MOLD", "MM FP", "MIXING", "RESORTES"])
-        work_order = st.text_input("Work Order")
-        numero_parte = st.text_input("Número de Parte")
-        cantidad = st.number_input("Cantidad", min_value=1, step=1)
-        motivo = st.selectbox("Motivo", ["Proceso", "Prueba", "Retrabajo", "Muestra"])
-        proceso = st.selectbox("Estatus inicial", ["Pendiente"])
-        almacenista = ""
-        issue = False
+        # Guardar localmente
+        if os.path.exists(CSV_FILE):
+            df = pd.read_csv(CSV_FILE)
+            df = pd.concat([df, pd.DataFrame([nueva_req])], ignore_index=True)
+        else:
+            df = pd.DataFrame([nueva_req])
+        df.to_csv(CSV_FILE, index=False)
 
-        submitted = st.form_submit_button("Enviar requisición")
+        # Guardar en Smartsheet
+        if guardar_en_smartsheet(nueva_req):
+            st.success("✅ Requisición guardada también en Smartsheet.")
+        st.success("✅ Requisición registrada correctamente.")
+        st.rerun()
 
-        if submitted:
-            nueva_requisicion = {
-                "ID": str(uuid.uuid4())[:8],
-                "Area": area,
-                "Fecha/Hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "Work Order": work_order,
-                "Número de Parte": numero_parte,
-                "Cantidad": cantidad,
-                "Motivo": motivo,
-                "Status": proceso,
-                "Almacenista": almacenista,
-                "Issue": issue,
-            }
-
-            requisiciones = pd.concat([pd.DataFrame([nueva_requisicion]), requisiciones], ignore_index=True)
-            guardar_requisiciones(requisiciones)
-            guardar_en_smartsheet(nueva_requisicion)
-            st.success("✅ Requisición registrada correctamente.")
-            st.rerun()
-
-# =====================================
-# TAB DE ALMACÉN
-# =====================================
+# ------------------------------------------------------
+# TAB 2: ALMACÉN
+# ------------------------------------------------------
 with tabs[1]:
     st.subheader("Lista de Requisiciones Registradas")
-    requisiciones = cargar_requisiciones()
+    requisiciones = leer_smartsheet()
 
-    # Filtros
-    with st.expander("🔎 Filtros"):
-        area_filtro = st.multiselect("Area(s)", options=sorted(requisiciones["Area"].unique()))
-        estatus_filtro = st.multiselect("Status", options=["Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"])
-        rango_fecha = st.date_input("Rango de fechas")
+    if requisiciones is not None and not requisiciones.empty:
+        area_filtro = st.multiselect("Área(s)", options=sorted(requisiciones["Area"].dropna().unique()))
+        estatus_filtro = st.multiselect("Estatus", options=sorted(requisiciones["Estatus"].dropna().unique()))
+        buscar = st.text_input("Buscar (Work Order / Número de parte / Número de lote)")
 
-    # Aplicar filtros
-    df_filtrado = requisiciones.copy()
-    if area_filtro:
-        df_filtrado = df_filtrado[df_filtrado["Area"].isin(area_filtro)]
-    if estatus_filtro:
-        df_filtrado = df_filtrado[df_filtrado["Status"].isin(estatus_filtro)]
+        df_filtrado = requisiciones.copy()
+        if area_filtro:
+            df_filtrado = df_filtrado[df_filtrado["Area"].isin(area_filtro)]
+        if estatus_filtro:
+            df_filtrado = df_filtrado[df_filtrado["Estatus"].isin(estatus_filtro)]
+        if buscar:
+            df_filtrado = df_filtrado[df_filtrado.apply(lambda row: buscar.lower() in str(row.values).lower(), axis=1)]
 
-    st.dataframe(df_filtrado, use_container_width=True, hide_index=True)
-
-
-
-
-
-
-
-
-
-
-
+        st.dataframe(df_filtrado, use_container_width=True, hide_index=True)
+    else:
+        st.info("No hay requisiciones registradas aún.")
