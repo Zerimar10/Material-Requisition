@@ -1,174 +1,136 @@
-import os
-import requests
-import pandas as pd
 import streamlit as st
+import pandas as pd
+import requests
+import os
+import uuid
 from datetime import datetime
+import urllib3
 
-# ==========================
-# 🔐 CARGAR VARIABLES SECRETAS
-# ==========================
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# --- CONFIGURACIÓN DE LA APP ---
+st.set_page_config(page_title="Sistema de Requisiciones de Almacén", layout="wide")
+
+# --- VARIABLES DE ENTORNO ---
 CLAVE_ALMACEN = os.getenv("CLAVE_ALMACEN", "almacen2025")
 SMARTSHEET_TOKEN = os.getenv("SMARTSHEET_TOKEN")
 SHEET_ID = os.getenv("SHEET_ID")
 CSV_FILE = "requisiciones.csv"
 
-# ==========================
-# 📦 CONFIGURAR CABECERAS API
-# ==========================
-headers = {
-    "Authorization": f"Bearer {SMARTSHEET_TOKEN}",
-    "Content-Type": "application/json"
-}
+# --- LOGO CORPORATIVO ---
+st.image("https://upload.wikimedia.org/wikipedia/commons/4/4b/Nordson_Corporation_logo.svg", width=220)
+st.title("Sistema de Requisiciones de Almacén")
 
-# ==========================
-# 🧭 FUNCIÓN: OBTENER COLUMNAS
-# ==========================
-def obtener_columnas():
-    try:
-        url = f"https://api.smartsheet.com/2.0/sheets/{SHEET_ID}"
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        data = response.json()
-        columnas = {col["title"]: col["id"] for col in data["columns"]}
-        return columnas
-    except requests.exceptions.HTTPError as e:
-        st.error(f"⚠️ Error HTTP al conectar con Smartsheet: {e}")
-    except Exception as e:
-        st.error(f"❌ Error inesperado al obtener columnas: {e}")
-    return None
+# --- FUNCIÓN PARA LEER CSV LOCAL ---
+def cargar_requisiciones():
+    if os.path.exists(CSV_FILE):
+        df = pd.read_csv(CSV_FILE)
+        return df
+    else:
+        columnas = ["ID", "Fecha/Hora", "Area", "Work Order", "Número de Parte", "Cantidad", "Motivo", "Status", "Almacenista", "Issue"]
+        return pd.DataFrame(columns=columnas)
 
-# ==========================
-# ✍️ FUNCIÓN: GUARDAR EN SMARTSHEET
-# ==========================
-def guardar_requisicion_smartsheet(area, fecha, work_order, num_parte, cantidad, motivo, status, almacenista, issue):
-    columnas = obtener_columnas()
-    if not columnas:
+# --- FUNCIÓN PARA GUARDAR EN CSV LOCAL ---
+def guardar_requisiciones(df):
+    df.to_csv(CSV_FILE, index=False)
+
+# --- FUNCIÓN PARA GUARDAR EN SMARTSHEET ---
+def guardar_en_smartsheet(nueva_requisicion):
+    if not SMARTSHEET_TOKEN or not SHEET_ID:
+        st.warning("No se ha configurado la conexión con Smartsheet.")
         return False
 
+    headers = {
+        "Authorization": f"Bearer {SMARTSHEET_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
     try:
-        row = {
+        # Mapea las columnas según sus IDs (revisadas previamente con ver_columnas.py)
+        columnas = {
+            "Area": 6750559196486644,
+            "Fecha/Hora": 5178655547019140,
+            "Work Order": 2926855733333892,
+            "Número de Parte": 7340353607038818,
+            "Cantidad": 4366064339131476,
+            "Motivo": 8810820958979772,
+            "Status": 2252171512191694,
+            "Almacenista": 4366064339131476,
+            "Issue": 2477016964878212
+        }
+
+        data = {
             "toTop": True,
-            "cells": [
-                {"columnId": columnas["Area"], "value": area},
-                {"columnId": columnas["Fecha/Hora"], "value": fecha},
-                {"columnId": columnas["Work Order"], "value": work_order},
-                {"columnId": columnas["Número de Parte"], "value": num_parte},
-                {"columnId": columnas["Cantidad"], "value": cantidad},
-                {"columnId": columnas["Motivo"], "value": motivo},
-                {"columnId": columnas["Status"], "value": status},
-                {"columnId": columnas["Almacenista"], "value": almacenista},
-                {"columnId": columnas["Issue"], "value": issue},
+            "rows": [
+                {"cells": [
+                    {"columnId": columnas["Area"], "value": nueva_requisicion["Area"]},
+                    {"columnId": columnas["Fecha/Hora"], "value": nueva_requisicion["Fecha/Hora"]},
+                    {"columnId": columnas["Work Order"], "value": nueva_requisicion["Work Order"]},
+                    {"columnId": columnas["Número de Parte"], "value": nueva_requisicion["Número de Parte"]},
+                    {"columnId": columnas["Cantidad"], "value": nueva_requisicion["Cantidad"]},
+                    {"columnId": columnas["Motivo"], "value": nueva_requisicion["Motivo"]},
+                    {"columnId": columnas["Status"], "value": nueva_requisicion["Status"]},
+                    {"columnId": columnas["Almacenista"], "value": nueva_requisicion["Almacenista"]},
+                    {"columnId": columnas["Issue"], "value": nueva_requisicion["Issue"]}
+                ]}
             ]
         }
 
         url = f"https://api.smartsheet.com/2.0/sheets/{SHEET_ID}/rows"
-        response = requests.post(url, headers=headers, json={"rows": [row]})
-        response.raise_for_status()
-        st.success("✅ Requisición guardada correctamente en Smartsheet.")
-        return True
+        resp = requests.post(url, headers=headers, json=data, verify=False)
 
-    except requests.exceptions.HTTPError as e:
-        st.error(f"⚠️ Error al guardar en Smartsheet: {e}")
-        if response.text:
-            st.code(response.text, language="json")
+        if resp.status_code == 200:
+            st.success("✅ Requisición guardada también en Smartsheet.")
+            return True
+        else:
+            st.error(f"⚠️ Error al guardar en Smartsheet: {resp.status_code} - {resp.text}")
+            return False
+
     except Exception as e:
-        st.error(f"❌ Error inesperado al guardar la requisición: {e}")
-    return False
+        st.error(f"❌ Error inesperado al conectar con Smartsheet: {e}")
+        return False
 
-# ==========================
-# 📖 FUNCIÓN: LEER REQUISICIONES
-# ==========================
-def leer_requisiciones_smartsheet():
-    try:
-        url = f"https://api.smartsheet.com/2.0/sheets/{SHEET_ID}"
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        data = response.json()
 
-        columnas = {col["id"]: col["title"] for col in data["columns"]}
-        registros = []
-
-        for row in data["rows"]:
-            registro = {}
-            for cell in row["cells"]:
-                col_name = columnas.get(cell["columnId"], None)
-                if col_name:
-                    registro[col_name] = cell.get("displayValue", "")
-            registros.append(registro)
-
-        return pd.DataFrame(registros)
-
-    except requests.exceptions.HTTPError as e:
-        st.error(f"⚠️ Error al leer datos desde Smartsheet: {e}")
-    except Exception as e:
-        st.error(f"❌ Error inesperado al leer requisiciones: {e}")
-    return pd.DataFrame()
-
-# ==========================
-# 🎨 INTERFAZ DE STREAMLIT
-# ==========================
-st.set_page_config(page_title="Sistema de Requisiciones de Almacén", layout="wide")
-
-# Logo Nordson
-st.image(
-    "https://upload.wikimedia.org/wikipedia/commons/4/4b/Nordson_logo.svg",
-    width=200,
-)
-st.title("📦 Sistema de Requisiciones de Almacén")
-
-# Pestañas principales
-tab1, tab2 = st.tabs(["➕ Nueva Requisición", "📋 Lista de Requisiciones"])
-
-# ==========================
-# 🧾 TAB 1 – NUEVA REQUISICIÓN
-# ==========================
-with tab1:
-    st.subheader("Registrar nueva requisición")
-
-    area = st.text_input("Área")
+# --- INTERFAZ PRINCIPAL ---
+with st.form("form_requisicion"):
+    area = st.text_input("Area")
     work_order = st.text_input("Work Order")
-    num_parte = st.text_input("Número de Parte")
+    numero_parte = st.text_input("Número de Parte")
     cantidad = st.number_input("Cantidad", min_value=1, step=1)
     motivo = st.text_input("Motivo")
-    status = st.selectbox("Status inicial", ["Pendiente", "Entregado", "Proceso"])
-    almacenista = st.text_input("Almacenista")
-    issue = st.checkbox("Issue", value=False)
+    status = st.selectbox("Status inicial", ["Pendiente", "Proceso", "Entregado"])
+    almacenista = st.text_input("Almacenista", value="")
+    issue = st.text_input("Issue", value="")
 
-    if st.button("Enviar requisición"):
-        fecha = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        if guardar_requisicion_smartsheet(
-            area, fecha, work_order, num_parte, cantidad, motivo, status, almacenista, str(issue)
-        ):
-            st.success("✅ Requisición registrada correctamente.")
-        else:
-            st.warning("⚠️ No se pudo guardar la requisición en Smartsheet.")
+    submitted = st.form_submit_button("Enviar requisición")
 
-# ==========================
-# 📋 TAB 2 – LISTA DE REQUISICIONES
-# ==========================
-with tab2:
-    st.subheader("Lista de Requisiciones Registradas")
+    if submitted:
+        nueva_requisicion = {
+            "ID": str(uuid.uuid4()),
+            "Fecha/Hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "Area": area,
+            "Work Order": work_order,
+            "Número de Parte": numero_parte,
+            "Cantidad": cantidad,
+            "Motivo": motivo,
+            "Status": status,
+            "Almacenista": almacenista,
+            "Issue": issue
+        }
 
-    df = leer_requisiciones_smartsheet()
+        df = cargar_requisiciones()
+        df = pd.concat([df, pd.DataFrame([nueva_requisicion])], ignore_index=True)
+        guardar_requisiciones(df)
+        st.success("✅ Requisición registrada correctamente.")
 
-    if not df.empty:
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            area_filtro = st.multiselect("Área(s)", sorted(df["Area"].dropna().unique()))
-        with col2:
-            status_filtro = st.multiselect("Status", sorted(df["Status"].dropna().unique()))
-        with col3:
-            busqueda = st.text_input("Buscar (Work Order / Número de Parte / Motivo)")
+        if guardar_en_smartsheet(nueva_requisicion):
+            st.balloons()
 
-        # Aplicar filtros
-        df_filtrado = df.copy()
-        if area_filtro:
-            df_filtrado = df_filtrado[df_filtrado["Area"].isin(area_filtro)]
-        if status_filtro:
-            df_filtrado = df_filtrado[df_filtrado["Status"].isin(status_filtro)]
-        if busqueda:
-            df_filtrado = df_filtrado[df_filtrado.apply(lambda x: busqueda.lower() in str(x).lower(), axis=1)]
+# --- TABLA DE REQUISICIONES ---
+st.header("📋 Lista de Requisiciones Registradas")
+requisiciones = cargar_requisiciones()
 
-        st.dataframe(df_filtrado, use_container_width=True)
-    else:
-        st.warning("⚠️ No se pudieron cargar las requisiciones desde Smartsheet.")
+if not requisiciones.empty:
+    st.dataframe(requisiciones)
+else:
+    st.info("No hay requisiciones registradas todavía.")
