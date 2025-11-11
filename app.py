@@ -15,7 +15,7 @@ st.set_page_config(page_title="Sistema de Requisiciones de Almacén", layout="wi
 load_dotenv()
 CLAVE_ALMACEN = os.getenv("CLAVE_ALMACEN", "almacen2025")
 SMARTSHEET_TOKEN = os.getenv("SMARTSHEET_TOKEN")
-SHEET_ID = "9WVHx67PGhCqV7wt469M888CCPJ5pwmm2lY78hm1" # tu ID real de hoja
+SHEET_ID = "9WVHx67PGhCqV7wvf469M888CCPJ5pwmm2V78hm1" # tu ID real de hoja
 CSV_FILE = "requisiciones.csv"
 
 # Encabezado corporativo
@@ -178,3 +178,4 @@ with tabs[1]:
         st.dataframe(df_filtrado, use_container_width=True, hide_index=True)
     else:
         st.info("No hay requisiciones registradas aún.")
+
