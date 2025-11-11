@@ -153,18 +153,19 @@ with tabs[1]:
 
     # Filtros
     with st.expander("🔎 Filtros"):
-        area_filtro = st.multiselect("Área(s)", options=sorted(requisiciones["Área"].unique()))
-        estatus_filtro = st.multiselect("Estatus", options=["Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"])
+        area_filtro = st.multiselect("Área(s)", options=sorted(requisiciones["Area"].unique()))
+        estatus_filtro = st.multiselect("Status", options=["Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"])
         rango_fecha = st.date_input("Rango de fechas")
 
     # Aplicar filtros
     df_filtrado = requisiciones.copy()
     if area_filtro:
-        df_filtrado = df_filtrado[df_filtrado["Área"].isin(area_filtro)]
+        df_filtrado = df_filtrado[df_filtrado["Area"].isin(area_filtro)]
     if estatus_filtro:
-        df_filtrado = df_filtrado[df_filtrado["Estatus"].isin(estatus_filtro)]
+        df_filtrado = df_filtrado[df_filtrado["Status"].isin(estatus_filtro)]
 
     st.dataframe(df_filtrado, use_container_width=True, hide_index=True)
+
 
 
 
