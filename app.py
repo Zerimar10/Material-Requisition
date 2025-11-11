@@ -111,7 +111,7 @@ with tabs[0]:
     requisiciones = cargar_requisiciones()
 
     with st.form("form_requisicion"):
-        area = st.selectbox("Área", ["Introducer", "PU1", "PU2", "PU3", "PU4", "PVC1", "PVC2",
+        area = st.selectbox("Area", ["Introducer", "PU1", "PU2", "PU3", "PU4", "PVC1", "PVC2",
                                      "PVC3A", "PVC3B", "PVC6", "PVC7", "PVCS", "PAK1",
                                      "MM CL", "MM MOLD", "MM FP", "MIXING", "RESORTES"])
         work_order = st.text_input("Work Order")
@@ -153,7 +153,7 @@ with tabs[1]:
 
     # Filtros
     with st.expander("🔎 Filtros"):
-        area_filtro = st.multiselect("Área(s)", options=sorted(requisiciones["Area"].unique()))
+        area_filtro = st.multiselect("Area(s)", options=sorted(requisiciones["Area"].unique()))
         estatus_filtro = st.multiselect("Status", options=["Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"])
         rango_fecha = st.date_input("Rango de fechas")
 
@@ -165,6 +165,7 @@ with tabs[1]:
         df_filtrado = df_filtrado[df_filtrado["Status"].isin(estatus_filtro)]
 
     st.dataframe(df_filtrado, use_container_width=True, hide_index=True)
+
 
 
 
