@@ -25,31 +25,16 @@ with c1:
     st.image(logo, width=110)
 with c2:
     st.markdown(
-    """
-    <style>
-      /* Botones más “corporativos” */
-      .stButton>button {
-        border-radius: 10px !important;
-        padding: 0.55rem 1rem !important;
-        font-weight: 600 !important;
-      }
-      /* Inputs redondeados ligeramente */
-      .stTextInput>div>div>input,
-      .stNumberInput input,
-      .stSelectbox>div>div>div {
-        border-radius: 8px !important;
-      }
-      /* Encabezados de secciones */
-      h2, h3 { color:#0A2540 !important; }
-      /* Compactar editor y tablas, ya lo traías pero lo dejo aquí */
-      [data-testid="stDataFrame"] div[role="gridcell"],
-      [data-testid="stDataFrame"] div[role="columnheader"] {
-          font-size: 0.92rem !important;
-      }
-    </style>
-    """,
-    unsafe_allow_html=True
-  )
+        """
+        <h1 style='color:#0072CE; font-weight:700; margin-bottom:4px;'>
+          Nordson Warehouse System
+        </h1>
+        <h5 style='color:#5F6C7B; margin-top:0;'>
+          Sistema de requisiciones de almacén
+        </h5>
+        """,
+        unsafe_allow_html=True
+    )
 
 st.markdown("---")
 
@@ -348,5 +333,6 @@ if page == "🏢 Almacén":
             time.sleep(10)
             st.session_state["page"] = "🏢 Almacén"
             st.rerun()
+
 
 
