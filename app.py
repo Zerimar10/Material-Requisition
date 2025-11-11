@@ -71,7 +71,7 @@ def guardar_en_smartsheet(datos):
     row = {
         "toBottom": True,
         "cells": [
-            {"columnId": columnas["Area"], "value": datos["Área"]},
+            {"columnId": columnas["Area"], "value": datos["Area"]},
             {"columnId": columnas["Fecha/Hora"], "value": datos["Fecha/Hora"]},
             {"columnId": columnas["Work Order"], "value": datos["Work Order"]},
             {"columnId": columnas["Número de Parte"], "value": datos["Número de Parte"]},
@@ -165,6 +165,7 @@ with tabs[1]:
         df_filtrado = df_filtrado[df_filtrado["Estatus"].isin(estatus_filtro)]
 
     st.dataframe(df_filtrado, use_container_width=True, hide_index=True)
+
 
 
 
