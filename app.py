@@ -53,7 +53,7 @@ def guardar_en_smartsheet(data):
             "Número de Parte": 7340355360704388,
             "Cantidad": 4306064313497476,
             "Motivo": 8810230940867972,
-            "Estatus": 2252171519129644,
+            "Status": 2252171519129644,
             "Almacenista": 4728816778536460,
             "Issue": 2477016694878212
         }
@@ -67,7 +67,7 @@ def guardar_en_smartsheet(data):
                 {"columnId": columnas["Número de Parte"], "value": data["Número de Parte"]},
                 {"columnId": columnas["Cantidad"], "value": data["Cantidad"]},
                 {"columnId": columnas["Motivo"], "value": data["Motivo"]},
-                {"columnId": columnas["Estatus"], "value": data["Estatus"]},
+                {"columnId": columnas["Status"], "value": data["Status"]},
                 {"columnId": columnas["Almacenista"], "value": data["Almacenista"]},
                 {"columnId": columnas["Issue"], "value": data["Issue"]}
             ]
@@ -123,7 +123,7 @@ with tabs[0]:
     numero_parte = st.text_input("Número de Parte")
     cantidad = st.number_input("Cantidad", min_value=1, step=1)
     motivo = st.text_input("Motivo", "Proceso")
-    estatus = "Pendiente"
+    status = "Pendiente"
     almacenista = ""
     issue = False
 
@@ -136,7 +136,7 @@ with tabs[0]:
             "Número de Parte": numero_parte,
             "Cantidad": cantidad,
             "Motivo": motivo,
-            "Estatus": estatus,
+            "Status": status,
             "Almacenista": almacenista,
             "Issue": issue
         }
@@ -164,18 +164,19 @@ with tabs[1]:
 
     if requisiciones is not None and not requisiciones.empty:
         area_filtro = st.multiselect("Área(s)", options=sorted(requisiciones["Area"].dropna().unique()))
-        estatus_filtro = st.multiselect("Estatus", options=sorted(requisiciones["Estatus"].dropna().unique()))
+        status_filtro = st.multiselect("Status", options=sorted(requisiciones["Status"].dropna().unique()))
         buscar = st.text_input("Buscar (Work Order / Número de parte / Número de lote)")
 
         df_filtrado = requisiciones.copy()
         if area_filtro:
             df_filtrado = df_filtrado[df_filtrado["Area"].isin(area_filtro)]
-        if estatus_filtro:
-            df_filtrado = df_filtrado[df_filtrado["Estatus"].isin(estatus_filtro)]
+        if status_filtro:
+            df_filtrado = df_filtrado[df_filtrado["Status"].isin(Status_filtro)]
         if buscar:
             df_filtrado = df_filtrado[df_filtrado.apply(lambda row: buscar.lower() in str(row.values).lower(), axis=1)]
 
         st.dataframe(df_filtrado, use_container_width=True, hide_index=True)
     else:
         st.info("No hay requisiciones registradas aún.")
+
 
