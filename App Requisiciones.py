@@ -267,7 +267,7 @@ with tab1:
                 {"column_id": 3989860927623044, "value": nueva_fila["motivo"]},
                 {"column_id": 8493460554993540, "value": nueva_fila["status"]},
                 {"column_id": 330686230384516, "value": nueva_fila["almacenista"]},
-                {"column_id": 4834285857755012, "value": str(nueva_fila["issue"])}
+                {"column_id": 4834285857755012, "value": bool(nueva_fila["issue"])}
             ]
 
             response = client.Sheets.add_rows(sheet_id, [new_row])
@@ -276,7 +276,12 @@ with tab1:
                 st.error(f"❌ Smartsheet respondió con error: {response.message}")
 
         except Exception as e:
-            st.error(f"❌ Error al enviar a Smartsheet: {e}")
+            st.error(f"❌ Error al enviar a Smartsheet.")
+            try:
+                import traceback
+                st.code(traceback.format_exc())
+            except:
+                st.write(e)
 
         # Activar mensaje y bandera de limpiar formulario
         st.session_state.msg_ok = True
@@ -448,6 +453,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
