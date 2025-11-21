@@ -270,8 +270,10 @@ with tab1:
                 {"column_id": 4834285857755012, "value": str(nueva_fila["issue"])}
             ]
 
-            # Enviar a Smartsheet
-            client.Sheets.add_rows(sheet_id, [new_row])
+            response = client.Sheets.add_rows(sheet_id, [new_row])
+
+            if response.message != "SUCCESS":
+                st.error(f"❌ Smartsheet respondió con error: {response.message}")
 
         except Exception as e:
             st.error(f"❌ Error al enviar a Smartsheet: {e}")
@@ -446,6 +448,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
