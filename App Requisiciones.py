@@ -266,7 +266,7 @@ with tab1:
                 {"column_id": 6241660741308292, "value": nueva_fila["cantidad"]},
                 {"column_id": 3989860927623044, "value": nueva_fila["motivo"]},
                 {"column_id": 8493460554993540, "value": nueva_fila["status"]},
-                {"column_id": 330686230384516, "value": nueva_fila["almacenista"]},
+                {"column_id": 3306862303845516, "value": nueva_fila["almacenista"]},
                 {"column_id": 4834285857755012, "value": str(nueva_fila["issue"])}
             ]
 
@@ -446,5 +446,6 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
