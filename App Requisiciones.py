@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import time
-from Utils.password import ALMACEN_PASSWORD
+
+ALMACEN_PASSWORD = st.secrets["ALMACEN_PASSWORD"]
 
 
 # ============================================================
@@ -410,3 +411,4 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
