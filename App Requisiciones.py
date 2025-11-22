@@ -406,55 +406,60 @@ with tab2:
             nuevo_issue = st.checkbox("Issue", value=(str(fila["issue"])=="True"))
 
         if st.button("Guardar cambios"):
-    # Actualizar en DF
-    df.at[idx, "status"] = nuevo_status
-    df.at[idx, "almacenista"] = nuevo_almacenista
-    df.at[idx, "issue"] = str(nuevo_issue)
 
-    guardar_datos(df)
+            # ============================================
+            # 1) ACTUALIZAR EN EL CSV LOCAL
+            # ============================================
+            df.at[idx, "status"] = nuevo_status
+            df.at[idx, "almacenista"] = nuevo_almacenista
+            df.at[idx, "issue"] = str(nuevo_issue)
 
-    # ============================================
-    # ACTUALIZAR TAMBIÉN EN SMARTSHEET (solo al GUARDAR)
-    # ============================================
-    try:
-        import smartsheet
+            guardar_datos(df)
 
-        token = st.secrets["SMARTSHEET_TOKEN"]
-        sheet_id = int(st.secrets["SHEET_ID"])
-        client = smartsheet.Smartsheet(token)
+            # ============================================
+            # 2) ACTUALIZAR TAMBIÉN EN SMARTSHEET
+            # ============================================
+            try:
+                import smartsheet
 
-        # Descargar hoja de Smartsheet
-        sheet = client.Sheets.get_sheet(sheet_id)
+                token = st.secrets["SMARTSHEET_TOKEN"]
+                sheet_id = int(st.secrets["SHEET_ID"])
+                client = smartsheet.Smartsheet(token)
 
-        row_id_smartsheet = None
+                # Descargar hoja actual
+                sheet = client.Sheets.get_sheet(sheet_id)
 
-        # Buscar por columna ID
-        for row in sheet.rows:
-            for cell in row.cells:
-                if cell.column_id == 6750555919648644: # COLUMNA ID
-                    if str(cell.value).strip() == str(id_editar).strip():
-                        row_id_smartsheet = row.id
-                        break
+                row_id_smartsheet = None
 
-        if row_id_smartsheet is None:
-            st.warning("⚠️ No se encontró el ID exacto en Smartsheet.")
-        else:
-            update_row = smartsheet.models.Row()
-            update_row.id = row_id_smartsheet
+                # Buscar coincidencia por columna ID
+                for row in sheet.rows:
+                    for cell in row.cells:
+                        if cell.column_id == 6750555919648644: # COLUMNA ID
+                            if str(cell.value).strip() == str(id_editar).strip():
+                                row_id_smartsheet = row.id
+                                break
 
-            update_row.cells = [
-                {"column_id": 8493460554993540, "value": nuevo_status},
-                {"column_id": 330686230384516, "value": nuevo_almacenista},
-                {"column_id": 4834285857755012, "value": bool(nuevo_issue)},
-            ]
+                if row_id_smartsheet is None:
+                    st.warning("⚠️ No se encontró el ID exacto en Smartsheet.")
+                else:
+                    update_row = smartsheet.models.Row()
+                    update_row.id = row_id_smartsheet
 
-            client.Sheets.update_rows(sheet_id, [update_row])
+                    update_row.cells = [
+                        {"column_id": 8493460554993540, "value": nuevo_status},
+                        {"column_id": 330686230384516, "value": nuevo_almacenista},
+                        {"column_id": 4834285857755012, "value": bool(nuevo_issue)},
+                    ]
 
-    except Exception as e:
-        st.error(f"❌ Error al actualizar Smartsheet: {e}")
+                    client.Sheets.update_rows(sheet_id, [update_row])
 
-    st.success("✓ Requisición actualizada.")
-    st.rerun()
+            except Exception as e:
+                st.error(f"❌ Error al actualizar Smartsheet: {e}")
+
+            # Mensaje final
+            st.success("✓ Requisición actualizada.")
+            st.rerun()
+
 
     # ================================
     # EXPORTAR A CSV CON TIMESTAMP
@@ -493,6 +498,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
