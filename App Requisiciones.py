@@ -413,6 +413,41 @@ with tab2:
 
             guardar_datos(df)
 
+            # ============================================
+            # ACTUALIZAR TAMBIÉN EN SMARTSHEET
+            # ============================================
+            try:
+                import smartsheet
+
+                token = st.secrets["SMARTSHEET_TOKEN"]
+                sheet_id = int(st.secrets["SHEET_ID"])
+                client = smartsheet.Smartsheet(token)
+
+                # Buscar fila en Smartsheet por ID
+                search_result = client.Search.search(sheet_id, id_editar)
+
+                if search_result.results:
+                    row_id_smartsheet = search_result.results[0].object_id
+
+                    # Construir objeto Row para actualizar
+                    update_row = smartsheet.models.Row()
+                    update_row.id = row_id_smartsheet
+
+                    update_row.cells = [
+                        {"column_id": 6750555919648644, "value": nuevo_status},
+                        {"column_id": 6086132072905172, "value": nuevo_almacenista},
+                        {"column_id": 283692361602780428, "value": str(nuevo_issue)},
+                    ]
+
+                    # Enviar actualización
+                    client.Sheets.update_rows(sheet_id, [update_row])
+
+                else:
+                    st.warning("⚠️ No se encontró coincidencia en Smartsheet para este ID.")
+
+            except Exception as e:
+                st.error(f"❌ Error al actualizar Smartsheet: {e}")
+
             st.success("✔ Requisición actualizada.")
             st.rerun()
 
@@ -453,6 +488,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
