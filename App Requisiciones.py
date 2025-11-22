@@ -436,7 +436,7 @@ with tab2:
                 # Buscar coincidencia por columna ID
                 for row in sheet.rows:
                     for cell in row.cells:
-                        if cell.column_id == 6750555919648644: # COLUMNA ID
+                        if cell.column_id == 675055919648644: # COLUMNA ID
                             if str(cell.value).strip() == str(id_editar).strip():
                                 row_id_smartsheet = row.id
                                 st.write(f"DEBUG: ID coincide con RowID {row_id_smartsheet}")
@@ -467,7 +467,7 @@ with tab2:
 
             # Mensaje final
             st.success("✓ Requisición actualizada.")
-             # <- Desactivado temporalmente para debug
+            st.rerun() # <- Desactivado temporalmente para debug
 
 
     # ================================
@@ -507,6 +507,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
