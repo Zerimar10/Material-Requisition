@@ -434,9 +434,9 @@ with tab2:
                     update_row.id = row_id_smartsheet
 
                     update_row.cells = [
-                        {"column_id": 6750555919648644, "value": nuevo_status},
-                        {"column_id": 6086132072905172, "value": nuevo_almacenista},
-                        {"column_id": 283692361602780428, "value": str(nuevo_issue)},
+                        {"column_id": 8493460554993540, "value": nuevo_status},
+                        {"column_id": 330686230384516, "value": nuevo_almacenista},
+                        {"column_id": 4834285857755012, "value": str(nuevo_issue)},
                     ]
 
                     # Enviar actualización
@@ -488,6 +488,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
