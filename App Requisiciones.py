@@ -414,7 +414,7 @@ with tab2:
             guardar_datos(df)
 
         # ============================================
-        # ACTUALIZAR TAMBIÉN EN SMARTSHEET
+        # ACTUALIZAR TAMBIÉN EN SMARTSHEET (MÉTODO CORRECTO)
         # ============================================
         try:
             import smartsheet
@@ -423,26 +423,34 @@ with tab2:
             sheet_id = int(st.secrets["SHEET_ID"])
             client = smartsheet.Smartsheet(token)
 
-            # Buscar fila en Smartsheet por el ID
-            search_result = client.Search.search(sheet_id, id_editar)
+            # Descargar hoja completa
+            sheet = client.Sheets.get_sheet(sheet_id)
 
-            if search_result.results:
-                row_id_smartsheet = search_result.results[0].object_id
+            row_id_smartsheet = None
 
-                # Construir objeto Row a actualizar
+            # Buscar fila donde la columna ID coincida EXACTAMENTE
+            for row in sheet.rows:
+                for cell in row.cells:
+                    if cell.column_id == 6750555919648644: # Columna ID
+                        if str(cell.value).strip() == str(id_editar).strip():
+                            row_id_smartsheet = row.id
+                            break
+
+            if row_id_smartsheet is None:
+                st.warning("⚠️ No se encontró el ID exacto en Smartsheet.")
+            else:
+                # Construir actualización
                 update_row = smartsheet.models.Row()
                 update_row.id = row_id_smartsheet
 
                 update_row.cells = [
-                    {"column_id": 8493460554993540, "value": nuevo_status},
-                    {"column_id": 330686230384516, "value": nuevo_almacenista},
-                    {"column_id": 4834285857755012, "value": bool(nuevo_issue)},
+                    {"column_id": 8493460554993540, "value": nuevo_status}, # status
+                    {"column_id": 330686230384516, "value": nuevo_almacenista}, # almacenista
+                    {"column_id": 4834285857755012, "value": bool(nuevo_issue)}, # issue
                 ]
 
+                # Enviar actualización
                 client.Sheets.update_rows(sheet_id, [update_row])
-
-            else:
-                st.warning("⚠️ No se encontró coincidencia en Smartsheet para este ID.")
 
         except Exception as e:
             st.error(f"❌ Error al actualizar Smartsheet: {e}")
@@ -487,6 +495,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
