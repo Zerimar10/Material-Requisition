@@ -406,57 +406,55 @@ with tab2:
             nuevo_issue = st.checkbox("Issue", value=(str(fila["issue"])=="True"))
 
         if st.button("Guardar cambios"):
+    # Actualizar en DF
+    df.at[idx, "status"] = nuevo_status
+    df.at[idx, "almacenista"] = nuevo_almacenista
+    df.at[idx, "issue"] = str(nuevo_issue)
 
-            df.at[idx, "status"] = nuevo_status
-            df.at[idx, "almacenista"] = nuevo_almacenista
-            df.at[idx, "issue"] = str(nuevo_issue)
+    guardar_datos(df)
 
-            guardar_datos(df)
+    # ============================================
+    # ACTUALIZAR TAMBIÉN EN SMARTSHEET (solo al GUARDAR)
+    # ============================================
+    try:
+        import smartsheet
 
-        # ============================================
-        # ACTUALIZAR TAMBIÉN EN SMARTSHEET (MÉTODO CORRECTO)
-        # ============================================
-        try:
-            import smartsheet
+        token = st.secrets["SMARTSHEET_TOKEN"]
+        sheet_id = int(st.secrets["SHEET_ID"])
+        client = smartsheet.Smartsheet(token)
 
-            token = st.secrets["SMARTSHEET_TOKEN"]
-            sheet_id = int(st.secrets["SHEET_ID"])
-            client = smartsheet.Smartsheet(token)
+        # Descargar hoja de Smartsheet
+        sheet = client.Sheets.get_sheet(sheet_id)
 
-            # Descargar hoja completa
-            sheet = client.Sheets.get_sheet(sheet_id)
+        row_id_smartsheet = None
 
-            row_id_smartsheet = None
+        # Buscar por columna ID
+        for row in sheet.rows:
+            for cell in row.cells:
+                if cell.column_id == 6750555919648644: # COLUMNA ID
+                    if str(cell.value).strip() == str(id_editar).strip():
+                        row_id_smartsheet = row.id
+                        break
 
-            # Buscar fila donde la columna ID coincida EXACTAMENTE
-            for row in sheet.rows:
-                for cell in row.cells:
-                    if cell.column_id == 6750555919648644: # Columna ID
-                        if str(cell.value).strip() == str(id_editar).strip():
-                            row_id_smartsheet = row.id
-                            break
+        if row_id_smartsheet is None:
+            st.warning("⚠️ No se encontró el ID exacto en Smartsheet.")
+        else:
+            update_row = smartsheet.models.Row()
+            update_row.id = row_id_smartsheet
 
-            if row_id_smartsheet is None:
-                st.warning("⚠️ No se encontró el ID exacto en Smartsheet.")
-            else:
-                # Construir actualización
-                update_row = smartsheet.models.Row()
-                update_row.id = row_id_smartsheet
+            update_row.cells = [
+                {"column_id": 8493460554993540, "value": nuevo_status},
+                {"column_id": 330686230384516, "value": nuevo_almacenista},
+                {"column_id": 4834285857755012, "value": bool(nuevo_issue)},
+            ]
 
-                update_row.cells = [
-                    {"column_id": 8493460554993540, "value": nuevo_status}, # status
-                    {"column_id": 330686230384516, "value": nuevo_almacenista}, # almacenista
-                    {"column_id": 4834285857755012, "value": bool(nuevo_issue)}, # issue
-                ]
+            client.Sheets.update_rows(sheet_id, [update_row])
 
-                # Enviar actualización
-                client.Sheets.update_rows(sheet_id, [update_row])
+    except Exception as e:
+        st.error(f"❌ Error al actualizar Smartsheet: {e}")
 
-        except Exception as e:
-            st.error(f"❌ Error al actualizar Smartsheet: {e}")
-
-            st.success("✔ Requisición actualizada.")
-            st.rerun()
+    st.success("✓ Requisición actualizada.")
+    st.rerun()
 
     # ================================
     # EXPORTAR A CSV CON TIMESTAMP
@@ -495,6 +493,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
