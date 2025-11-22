@@ -467,7 +467,7 @@ with tab2:
 
             # Mensaje final
             st.success("✓ Requisición actualizada.")
-            st.rerun()
+            st.rerun() # <- Desactivado temporalmente para debug
 
 
     # ================================
@@ -507,6 +507,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
