@@ -219,14 +219,20 @@ with tab1:
         st.rerun()
 
     # -----------------------------
-    # 4. Guardar requisición
-    # -----------------------------
-    if st.button("Guardar Requisición") and not st.session_state.guardando:
-       st.session_state.guardando = True # 🔒 Bloquea doble clic
+# 4. Guardar requisición
+# -----------------------------
+if st.button("Guardar Requisición"):
+    
+    # Evitar doble envío
+    if st.session_state.get("guardando", False):
+        st.warning("⏳ Procesando... por favor espere.")
+        st.stop()
+    
+    st.session_state.guardando = True # Bloquea segundo clic
 
-       df = cargar_datos()
+    df = cargar_datos()
 
-       nueva_fila = {
+    nueva_fila = {
         "ID": generar_id(),
         "fecha_hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "cuarto": st.session_state.form_cuarto,
@@ -238,16 +244,54 @@ with tab1:
         "status": "Pendiente",
         "almacenista": "",
         "issue": False,
-       }
+    }
 
-       df = pd.concat([df, pd.DataFrame([nueva_fila])], ignore_index=True)
-       guardar_datos(df)
+    df = pd.concat([df, pd.DataFrame([nueva_fila])], ignore_index=True)
+    guardar_datos(df)
 
-       # Mensaje de éxito y limpieza
-       st.session_state.msg_ok = True
-       st.session_state.reset_form = True
+    # ============================================
+    # ENVIAR TAMBIÉN A SMARTSHEET
+    # ============================================
+    try:
+        import smartsheet
 
-       st.rerun()
+        token = st.secrets["SMARTSHEET_TOKEN"]
+        sheet_id = int(st.secrets["SHEET_ID"])
+
+        client = smartsheet.Smartsheet(token)
+
+        new_row = smartsheet.models.Row()
+        new_row.to_top = True
+
+        new_row.cells = [
+            {"column_id": 675055919648644, "value": nueva_fila["ID"]},
+            {"column_id": 612161207095172, "value": nueva_fila["fecha_hora"]},
+            {"column_id": 5115760834465668, "value": nueva_fila["cuarto"]},
+            {"column_id": 2863961020780420, "value": nueva_fila["work_order"]},
+            {"column_id": 7367560648150916, "value": nueva_fila["numero_parte"]},
+            {"column_id": 1738061113937796, "value": nueva_fila["numero_lote"]},
+            {"column_id": 6241660741308292, "value": nueva_fila["cantidad"]},
+            {"column_id": 3989860927623044, "value": nueva_fila["motivo"]},
+            {"column_id": 8493460554993540, "value": nueva_fila["status"]},
+            {"column_id": 330686230384516, "value": nueva_fila["almacenista"]},
+            {"column_id": 4834285857755012, "value": bool(nueva_fila["issue"])},
+        ]
+
+        response = client.Sheets.add_rows(sheet_id, [new_row])
+
+        if response.message != "SUCCESS":
+            st.error(f"❌ Smartsheet respondió con error: {response.message}")
+
+    except Exception as e:
+        st.error("❌ Error al enviar a Smartsheet.")
+        st.write(e)
+
+    # Cuando ya terminó el proceso:
+    st.session_state.guardando = False
+    st.session_state.msg_ok = True
+    st.session_state.reset_form = True
+
+    st.rerun()
 
         # ============================================
         # ENVIAR TAMBIÉN LA REQUISICIÓN A SMARTSHEET
@@ -515,6 +559,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
