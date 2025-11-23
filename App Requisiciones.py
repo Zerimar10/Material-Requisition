@@ -221,8 +221,8 @@ with tab1:
     # -----------------------------
     # 4. Guardar requisición
     # -----------------------------
-    if "guardando" not in st.session.state:
-        st.session_state.guardando = False
+    if "guardando" not in st.session.state.keys():
+        st.session_state.setdefault("guardando", False)
 
     guardar = st.button("Guardar Requisicion",disabled=st.session_state.guardando)
 
@@ -510,6 +510,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
