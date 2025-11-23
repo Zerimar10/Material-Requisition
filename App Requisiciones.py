@@ -222,11 +222,11 @@ with tab1:
     # 4. Guardar requisición
     # -----------------------------
     if st.button("Guardar Requisición") and not st.session_state.guardando:
-    st.session_state.guardando = True # 🔒 Bloquea doble clic
+       st.session_state.guardando = True # 🔒 Bloquea doble clic
 
-    df = cargar_datos()
+       df = cargar_datos()
 
-    nueva_fila = {
+       nueva_fila = {
         "ID": generar_id(),
         "fecha_hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "cuarto": st.session_state.form_cuarto,
@@ -515,6 +515,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
