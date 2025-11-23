@@ -221,25 +221,33 @@ with tab1:
     # -----------------------------
     # 4. Guardar requisición
     # -----------------------------
-    if st.button("Guardar Requisición"):
-        df = cargar_datos()
+    if st.button("Guardar Requisición") and not st.session_state.guardando:
+    st.session_state.guardando = True # 🔒 Bloquea doble clic
 
-        nueva_fila = {
-            "ID": generar_id(),
-            "fecha_hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "cuarto": st.session_state.form_cuarto,
-            "work_order": st.session_state.form_work,
-            "numero_parte": st.session_state.form_parte,
-            "numero_lote": st.session_state.form_lote,
-            "cantidad": st.session_state.form_cantidad,
-            "motivo": st.session_state.form_motivo,
-            "status": "Pendiente",
-            "almacenista": "",
-            "issue": False,
-        }
+    df = cargar_datos()
 
-        df = pd.concat([df, pd.DataFrame([nueva_fila])], ignore_index=True)
-        guardar_datos(df)
+    nueva_fila = {
+        "ID": generar_id(),
+        "fecha_hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "cuarto": st.session_state.form_cuarto,
+        "work_order": st.session_state.form_work,
+        "numero_parte": st.session_state.form_parte,
+        "numero_lote": st.session_state.form_lote,
+        "cantidad": st.session_state.form_cantidad,
+        "motivo": st.session_state.form_motivo,
+        "status": "Pendiente",
+        "almacenista": "",
+        "issue": False,
+    }
+
+    df = pd.concat([df, pd.DataFrame([nueva_fila])], ignore_index=True)
+    guardar_datos(df)
+
+    # Mensaje de éxito y limpieza
+    st.session_state.msg_ok = True
+    st.session_state.reset_form = True
+
+    st.rerun()
 
         # ============================================
         # ENVIAR TAMBIÉN LA REQUISICIÓN A SMARTSHEET
@@ -507,6 +515,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
