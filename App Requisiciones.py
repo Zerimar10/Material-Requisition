@@ -218,16 +218,16 @@ with tab1:
         st.session_state.msg_ok = False
         st.rerun()
 
-    # -----------------------------
+# -----------------------------
 # 4. Guardar requisición
 # -----------------------------
 if st.button("Guardar Requisición"):
-    
+
     # Evitar doble envío
     if st.session_state.get("guardando", False):
         st.warning("⏳ Procesando... por favor espere.")
         st.stop()
-    
+
     st.session_state.guardando = True # Bloquea segundo clic
 
     df = cargar_datos()
@@ -286,7 +286,7 @@ if st.button("Guardar Requisición"):
         st.error("❌ Error al enviar a Smartsheet.")
         st.write(e)
 
-    # Cuando ya terminó el proceso:
+    # Fin del proceso
     st.session_state.guardando = False
     st.session_state.msg_ok = True
     st.session_state.reset_form = True
@@ -510,24 +510,4 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
