@@ -221,16 +221,14 @@ with tab1:
     # -----------------------------
     # 4. Guardar requisición
     # -----------------------------
-    if st.button("Guardar Requisición",disabled=st.session_state.get("disabled_btn", False)):
+    if "guardado" not in st.session.state:
+        st.session_state.guardado = False
 
-        # Evitar doble envío
-        if st.session_state.get("guardando", False):
-            st.warning("⏳ Procesando... por favor espere.")
-            st.session_state.disabled_btn = True
-        else:
-            st.session_state.disabled_btn = False
+    guardar = st.button("Guardar Requisicion",disabled=st.session_state.guardando)
 
-        st.session_state.guardando = True # Bloquea segundo clic
+    if guardar and not st.session_state.guardando:
+
+        st.session_state.guardando = True
 
         df = cargar_datos()
 
@@ -512,6 +510,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
