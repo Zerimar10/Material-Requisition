@@ -221,12 +221,14 @@ with tab1:
     # -----------------------------
     # 4. Guardar requisición
     # -----------------------------
-    if st.button("Guardar Requisición"):
+    if st.button("Guardar Requisición",disabled=st.session_state.get("disabled_btn", False)):
 
         # Evitar doble envío
         if st.session_state.get("guardando", False):
             st.warning("⏳ Procesando... por favor espere.")
-            st.stop()
+            st.session_state.disabled_btn = True
+        else:
+            st.session_state.disabled_btn = False
 
         st.session_state.guardando = True # Bloquea segundo clic
 
@@ -510,6 +512,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
