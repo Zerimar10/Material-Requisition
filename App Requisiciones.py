@@ -238,16 +238,16 @@ with tab1:
         "status": "Pendiente",
         "almacenista": "",
         "issue": False,
-    }
+       }
 
-    df = pd.concat([df, pd.DataFrame([nueva_fila])], ignore_index=True)
-    guardar_datos(df)
+       df = pd.concat([df, pd.DataFrame([nueva_fila])], ignore_index=True)
+       guardar_datos(df)
 
-    # Mensaje de éxito y limpieza
-    st.session_state.msg_ok = True
-    st.session_state.reset_form = True
+       # Mensaje de éxito y limpieza
+       st.session_state.msg_ok = True
+       st.session_state.reset_form = True
 
-    st.rerun()
+       st.rerun()
 
         # ============================================
         # ENVIAR TAMBIÉN LA REQUISICIÓN A SMARTSHEET
@@ -515,6 +515,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
