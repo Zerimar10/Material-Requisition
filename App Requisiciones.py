@@ -249,43 +249,39 @@ with tab1:
         df = pd.concat([df, pd.DataFrame([nueva_fila])], ignore_index=True)
         guardar_datos(df)
 
-        # ============================================
-        # ENVIAR TAMBIÉN A SMARTSHEET
-        # ============================================
+        # ======================================================
+        # ENVIAR TAMBIÉN LA REQUISICIÓN A SMARTSHEET (CORRECTO)
+        # ======================================================
         try:
-            import smartsheet
-
-            token = st.secrets["SMARTSHEET_TOKEN"]
-            sheet_id = int(st.secrets["SHEET_ID"])
-
             client = smartsheet.Smartsheet(token)
 
             new_row = smartsheet.models.Row()
             new_row.to_top = True
 
             new_row.cells = [
-                {"column_id": 675055919648644, "value": nueva_fila["ID"]},
+                {"column_id": 675059519648644, "value": nueva_fila["ID"]},
                 {"column_id": 612161207095172, "value": nueva_fila["fecha_hora"]},
-                {"column_id": 5115760834465668, "value": nueva_fila["cuarto"]},
-                {"column_id": 2863961020780420, "value": nueva_fila["work_order"]},
-                {"column_id": 7367560648150916, "value": nueva_fila["numero_parte"]},
-                {"column_id": 1738061113937796, "value": nueva_fila["numero_lote"]},
-                {"column_id": 6241660741308292, "value": nueva_fila["cantidad"]},
-                {"column_id": 3989860927623044, "value": nueva_fila["motivo"]},
-                {"column_id": 8493460554993540, "value": nueva_fila["status"]},
-                {"column_id": 330686230384516, "value": nueva_fila["almacenista"]},
-                {"column_id": 4834285857755012, "value": bool(nueva_fila["issue"])},
+                {"column_id": 511576083446566, "value": nueva_fila["cuarto"]},
+                {"column_id": 286396102278042, "value": nueva_fila["work_order"]},
+                {"column_id": 736756064815916, "value": nueva_fila["numero_parte"]},
+                {"column_id": 173860111393776, "value": nueva_fila["numero_lote"]},
+                {"column_id": 602471630472892, "value": nueva_fila["cantidad"]},
+                {"column_id": 398986027672304, "value": nueva_fila["motivo"]},
+                {"column_id": 849360455493530, "value": nueva_fila["status"]},
+                {"column_id": 330662302384516, "value": nueva_fila["almacenista"]},
+                {"column_id": 484328658775501, "value": bool(nueva_fila["issue"])},
             ]
 
             response = client.Sheets.add_rows(sheet_id, [new_row])
 
             if response.message != "SUCCESS":
-                st.error(f"❌ Smartsheet respondió con error: {response.message}")
+                st.error(f"❌ Error Smartsheet: {response.message}")
 
         except Exception as e:
             st.error("❌ Error al enviar a Smartsheet.")
             st.write(e)
 
+        
         # Fin del proceso
         st.session_state.guardando = False
         st.session_state.msg_ok = True
@@ -510,5 +506,6 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
