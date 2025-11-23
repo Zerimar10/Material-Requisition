@@ -256,7 +256,7 @@ with tab1:
             import smartsheet
 
             token = st.secrets["SMARTSHEET_TOKEN"]
-           sheet_id = int(st.secrets["SHEET_ID"])
+            sheet_id = int(st.secrets["SHEET_ID"])
 
             client = smartsheet.Smartsheet(token)
 
@@ -510,4 +510,5 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
