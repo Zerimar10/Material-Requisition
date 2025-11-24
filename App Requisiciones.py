@@ -293,8 +293,6 @@ with tab1:
         st.session_state.msg_ok = True
         st.session_state.reset_form = True
 
-        st.rerun()
-
 # ============================================================
 # TAB 2 — PANEL DE ALMACÉN
 # ============================================================
@@ -512,6 +510,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
