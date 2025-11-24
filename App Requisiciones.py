@@ -381,7 +381,7 @@ with tab2:
             m = int(m)
         except:
             m = 0
-        rerun "🟢" if m <= 120 else "🔴"
+        return "🟢" if m <= 120 else "🔴"
 
     def["semaforo"] = def["minutos"].apply(semaforo_valor)
 
@@ -581,6 +581,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
