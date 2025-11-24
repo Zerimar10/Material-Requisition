@@ -317,8 +317,9 @@ with tab2:
         elif pwd:
             st.warning("🔒 Acceso restringido.")
             st.stop()
-
-    st.success("🔓 Acceso concedido.")
+            
+    else:
+        st.success("🔓 Acceso concedido.")
 
     df = cargar_datos().fillna("")
 
@@ -514,6 +515,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
