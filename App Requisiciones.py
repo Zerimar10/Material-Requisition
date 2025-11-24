@@ -354,34 +354,42 @@ with tab2:
 
     from datetime import datetime
 
-    def calcular_minutos(fecha_txt):
-        """Calcula minutos entre ahora y la fecha dada."""
-        try:
-            fecha = datetime.strptime(str(fecha_txt), "%Y-%m-%d %H:%M:%S")
-            diff = datetime.now() - fecha
-            return int(diff.total_seconds() // 60)
-        except:
-            return 0
+    # Estados que detienen el contador
+    estados_finales = ["Entregado", "Cancelado", "No encontrado"]
 
-    # Crear columna min_final si no existe
+    # Asegurar columna min_final
     if "min_final" not in df.columns:
         df["min_final"] = None
 
-    # Calcular minutos efectivos
-    df["minutos"] = df.apply(
-        lambda row: 
-            row["min_final"] 
-            if pd.notna(row["min_final"]) else calcular_minutos(row["fecha_hora"]),
-        axis=1
-    )
+    # Convertir fecha
+    df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"], errors="coerce")
 
-    #Semáforo (rojo = >120 minutos, verde = <=120)
+    # ---- FUNCIÓN PARA CALCULAR MINUTOS ----
+    def calcular_minutos(row):
+        # Si ya está congelado, usar ese valor
+        if pd.notna(row["min_final"]):
+            return int(row["min_final"])
+
+        # Si no hay fecha válida → 0
+        if pd.isna(row["fecha_hora_dt"]):
+            return 0
+
+        # Calcular minutos en tiempo real
+        diff = datetime.now() - row["fecha_hora_dt"]
+        return int(diff.total_seconds() // 60)
+
+    # Aplicar cálculo
+    df["minutos"] = df.apply(calcular_minutos, axis=1)
+
+    # ---- SEMÁFORO ----
     def semaforo_valor(m):
         try:
             m = int(m)
         except:
-            m = 0
-        return "🟢" if m <= 120 else "🔴"
+            return "🟢"
+        if m <= 120:
+            return "🟢"
+        return "🔴"
 
     df["semaforo"] = df["minutos"].apply(semaforo_valor)
 
@@ -467,24 +475,15 @@ with tab2:
 
             estados_finales = ["Entregado", "Cancelado", "No encontrado"]
 
-            # Crear columna min_final si no existe
-            if "min_final" not in df.columns:
-                df["min_final"] = None
+            # Obtener minutos actuales antes de actualizar
+            minutos_actuales = df.at[idx, "minutos"]
 
-            # Actualizar valores editados
-            df.at[idx, "status"] = nuevo_status
-            df.at[idx, "almacenista"] = nuevo_almacenista
-            df.at[idx, "issue"] = str(nuevo_issue)
-
-            # Calcular minutos actuales (solo si no están congelados)
-            minutos_actuales = df.at[idx, "minutos"] if "minutos" in df.columns else 0
-
-            # Congelar si está en estado final
+            # Si status pasa a final → congelar minutos
             if nuevo_status in estados_finales:
                 if pd.isna(df.at[idx, "min_final"]):
                     df.at[idx, "min_final"] = minutos_actuales
             else:
-                # Si regresa a estado no final, reiniciar congelamiento
+                # Si sale de estado final → reiniciar congelamiento
                 df.at[idx, "min_final"] = None
 
             # Guardar en CSV
@@ -581,6 +580,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
