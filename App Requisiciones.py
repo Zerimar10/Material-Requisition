@@ -383,7 +383,7 @@ with tab2:
             m = 0
         return "🟢" if m <= 120 else "🔴"
 
-    def["semaforo"] = def["minutos"].apply(semaforo_valor)
+    df["semaforo"] = df["minutos"].apply(semaforo_valor)
 
     # -------------------------------------------
     # FILTROS
@@ -581,6 +581,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
