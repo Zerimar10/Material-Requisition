@@ -303,20 +303,22 @@ with tab2:
 
     st.markdown("<div class='titulo-seccion'>Panel de Almacén</div>", unsafe_allow_html=True)
 
-    pwd = st.text_input("Ingrese contraseña:", type="password")
+    if "almacen_auth" not in st.session_state:
+        st.session_state.almacen_auth = False
 
-    if pwd != ALMACEN_PASSWORD:
-        st.warning("🔒 Acceso restringido.")
-        st.stop()
+    if not st.session_state.almacen_auth:
+    
+        pwd = st.text_input("Ingrese contraseña:", type="password",key="pwd_almacen")
+
+        if pwd == ALMACEN_PASSWORD:
+            st.session_state.almacen_auth = True
+            st.experimental_rerun()
+
+        elif pwd:
+            st.warning("🔒 Acceso restringido.")
+            st.stop()
 
     st.success("🔓 Acceso concedido.")
-
-    # Ocultar input de contraseña
-    st.markdown("""
-    <style>
-        input[type="password"] { display:none; }
-    </style>
-    """, unsafe_allow_html=True)
 
     df = cargar_datos().fillna("")
 
@@ -512,6 +514,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
