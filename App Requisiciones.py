@@ -299,32 +299,53 @@ with tab1:
 # TAB 2 — PANEL DE ALMACÉN
 # ============================================================
 
+# ============================================================
+# TAB 2 — PANEL DE ALMACÉN
+# ============================================================
+
 with tab2:
 
     st.markdown("<div class='titulo-seccion'>Panel de Almacén</div>", unsafe_allow_html=True)
 
+    # ---------------------------------------
+    # 1) Inicializar el estado de autenticación
+    # ---------------------------------------
     if "almacen_auth" not in st.session_state:
         st.session_state.almacen_auth = False
 
+    # ---------------------------------------
+    # 2) Si NO está autenticado → pedir contraseña
+    # ---------------------------------------
     if not st.session_state.almacen_auth:
-    
-        pwd = st.text_input("Ingrese contraseña:", type="password",key="pwd_almacen")
+
+        pwd = st.text_input("Ingrese contraseña:", type="password", key="pwd_input")
 
         if pwd:
-        
             if pwd == ALMACEN_PASSWORD:
                 st.session_state.almacen_auth = True
-                st.session_state.pwd_almacen = ""
-            
+                st.experimental_rerun()
             else:
-                st.warning("🔒 Acceso restringido.")
+                st.warning("🚫 Acceso restringido.")
                 st.stop()
 
         st.stop()
 
-    st.success("🔓Acceso concedido.")
+    # ---------------------------------------
+    # 3) SI YA ESTÁ AUTENTICADO → mostrar panel
+    # ---------------------------------------
+    st.success("🔓 Acceso concedido.")
 
+    # Ocultar el input una vez autenticado (lo elimina del DOM)
+    st.markdown("""
+    <style>
+    input[type="password"] {display:none;}
+    label[for="pwd_input"] {display:none;}
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Ahora carga el panel normalmente
     df = cargar_datos().fillna("")
+
 
     # -------------------------------------------
     # COLUMNAS CALCULADAS
@@ -518,6 +539,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
