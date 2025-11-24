@@ -317,7 +317,7 @@ with tab2:
                 st.session_state.pwd_almacen = ""
             
             else:
-                st.warning(🔒 Acceso restringido.")
+                st.warning("🔒 Acceso restringido.")
                 st.stop()
 
         st.stop()
@@ -518,6 +518,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
