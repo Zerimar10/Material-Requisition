@@ -352,31 +352,33 @@ with tab2:
     # COLUMNAS CALCULADAS
     # -------------------------------------------
 
-    df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"])
-    estados_finales = ["Entregado", "Cancelado", "No encontrado"]
+    from datetime import datetime
 
-    def calcular_minutos(row):
-        if row["status"] in estados_finales:
-            # Mantener minutos ya calculados anteriormente (si existe)
-            if "minutos" in row and pd.notna(row["minutos"]):
-                return row["minutos"]
-            else:
-                # Calcular una sola vez
-                return int((datetime.now() - row["fecha_hora_dt"]).total_seconds() // 60)
-        else:
-            # Seguir contando normalmente si no está finalizada
-            return int((datetime.now() - row["fecha_hora_dt"]).total_seconds() // 60)
+    def calcular_minutos(fecha_txt):
+        """Calcula minutos entre ahora y la fecha dada."""
+        try:
+            fecha = datetime.strptime(str(fecha_txt), "%Y-%m-%d %H:%M:%S")
+            diff = datetime.now() - fecha
+            return int(diff.total_seconds() // 60)
+        except:
+            return 0
 
-    df["minutos"] = df.apply(calcular_minutos, axis=1)
+    # Crear columna min_final si no existe
+    if "min_final" not in df.columns:
+        df["min_final"] = None
 
-    def semaforo(x):
-        if x >= 20: return "🔴"
-        if x >= 10: return "🟠"
-        return "🟢"
+    # Calcular minutos efectivos
+    df["minutos"] = df.apply(
+        lambda row: 
+            row["min_final"] 
+            if pd.notna(row["min_final"]) else calcular_minutos(row["fecha_hora"]),
+        axis=1
+    )
 
-    df["semaforo"] = df["minutos"].apply(semaforo)
-
-    df = df.sort_values(by="fecha_hora_dt", ascending=False)
+    # Semáforo (rojo = >120 minutos, verde = <=120)
+    df["semaforo"] = df["minutos"].apply(
+        lambda m: "🟢" if m <= 120 else "🔴"
+    )
 
     # -------------------------------------------
     # FILTROS
@@ -454,13 +456,33 @@ with tab2:
 
         if st.button("Guardar cambios"):
 
-            # ============================================
-            # 1) ACTUALIZAR EN EL CSV LOCAL
-            # ============================================
+            # ===========================================================
+            # 1. Guardar cambios en CSV + CONGELAR MINUTOS si status final
+            # ===========================================================
+
+            estados_finales = ["Entregado", "Cancelado", "No encontrado"]
+
+            # Crear columna min_final si no existe
+            if "min_final" not in df.columns:
+                df["min_final"] = None
+
+            # Actualizar valores editados
             df.at[idx, "status"] = nuevo_status
             df.at[idx, "almacenista"] = nuevo_almacenista
             df.at[idx, "issue"] = str(nuevo_issue)
 
+            # Calcular minutos actuales (solo si no están congelados)
+            minutos_actuales = df.at[idx, "minutos"] if "minutos" in df.columns else 0
+
+            # Congelar si está en estado final
+            if nuevo_status in estados_finales:
+                if pd.isna(df.at[idx, "min_final"]):
+                    df.at[idx, "min_final"] = minutos_actuales
+            else:
+                # Si regresa a estado no final, reiniciar congelamiento
+                df.at[idx, "min_final"] = None
+
+            # Guardar en CSV
             guardar_datos(df)
 
             # ============================================
@@ -554,6 +576,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
