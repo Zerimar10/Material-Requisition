@@ -224,18 +224,9 @@ with tab1:
     if "guardando" not in st.session_state:
         st.session_state.guardando = False
 
-    if "btn_guardar_requisicion" not in st.session_state:
-        st.session_state.btn_guardar_requisicion = False
+    guardar = st.button("Guardar Requisicion")
 
-    guardar = st.button("Guardar Requisicion",key="btn_guardar",disabled=st.session_state.btn_guardar_requisicion)
-
-    if guardar:
-
-        st.session_state.btn_guardar_requisicion = True
-    
-        if st.session_state.guardando:
-            st.warning("⏳Procesando, por favor espere...")
-            st.stop()
+    if guardar and not st.session_state.guardando:
 
         st.session_state.guardando = True
 
@@ -299,8 +290,6 @@ with tab1:
         st.session_state.guardando = False
         st.session_state.msg_ok = True
         st.session_state.reset_form = True
-
-        st.session_state.btn_guardar_requisicion = False
 
         st.rerun()
 
@@ -521,6 +510,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
