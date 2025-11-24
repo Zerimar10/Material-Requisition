@@ -310,16 +310,19 @@ with tab2:
     
         pwd = st.text_input("Ingrese contraseña:", type="password",key="pwd_almacen")
 
-        if pwd == ALMACEN_PASSWORD:
-            st.session_state.almacen_auth = True
-            st.experimental_rerun()
-
-        elif pwd:
-            st.warning("🔒 Acceso restringido.")
-            st.stop()
+        if pwd:
+        
+            if pwd == ALMACEN_PASSWORD:
+                st.session_state.almacen_auth = True
+                st.session_state.pwd_almacen = ""
             
-    else:
-        st.success("🔓 Acceso concedido.")
+            else:
+                st.warning(🚫 Acceso restringido.")
+                st.stop()
+
+        st.stop()
+
+    st.success("🔓Acceso concedido.")
 
     df = cargar_datos().fillna("")
 
@@ -515,6 +518,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
