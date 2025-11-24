@@ -224,11 +224,13 @@ with tab1:
     if "guardando" not in st.session_state:
         st.session_state.guardando = False
 
-    guardar = st.button("Guardar Requisicion")
+    guardar = st.button("Guardar Requisicion",disabeled=st.session_state.guardando)
 
     if guardar and not st.session_state.guardando:
-
         st.session_state.guardando = True
+        st.rerun()
+
+    if st.session_state.guardando:
 
         df = cargar_datos()
 
@@ -510,6 +512,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
