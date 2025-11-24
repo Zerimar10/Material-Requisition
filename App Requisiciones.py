@@ -287,9 +287,9 @@ with tab1:
             st.write(e)
 
         # Fin del proceso
-        st.session_state.guardando = False
         st.session_state.msg_ok = True
         st.session_state.reset_form = True
+        st.session_state.guardando = False
 
         st.rerun()
 
@@ -510,6 +510,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
