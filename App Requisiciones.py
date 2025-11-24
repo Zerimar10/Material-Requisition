@@ -229,7 +229,7 @@ with tab1:
 
     guardar = st.button("Guardar Requisicion",key="btn_guardar",disabled=st.session_state.btn_guardar_requisicion)
 
-    if guardar
+    if guardar:
 
         st.session_state.btn_guardar_requisicion = True
     
@@ -521,6 +521,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
