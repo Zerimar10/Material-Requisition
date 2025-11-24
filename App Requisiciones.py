@@ -375,10 +375,15 @@ with tab2:
         axis=1
     )
 
-    # Semáforo (rojo = >120 minutos, verde = <=120)
-    df["semaforo"] = df["minutos"].apply(
-        lambda m: "🟢" if m <= 120 else "🔴"
-    )
+    #Semáforo (rojo = >120 minutos, verde = <=120)
+    def semaforo_valor(m):
+        try:
+            m = int(m)
+        except:
+            m = 0
+        rerun "🟢" if m <= 120 else "🔴"
+
+    def["semaforo"] = def["minutos"].apply(semaforo_valor)
 
     # -------------------------------------------
     # FILTROS
@@ -576,6 +581,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
