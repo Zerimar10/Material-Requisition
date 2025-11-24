@@ -353,7 +353,21 @@ with tab2:
     # -------------------------------------------
 
     df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"])
-    df["minutos"] = ((datetime.now() - df["fecha_hora_dt"]).dt.total_seconds() // 60).astype(int)
+    estados_finales = ["Entregado", "Cancelado", "No encontrado"]
+
+    def calcular_minutos(row):
+        if row["status"] in estados_finales:
+            # Mantener minutos ya calculados anteriormente (si existe)
+            if "minutos" in row and pd.notna(row["minutos"]):
+                return row["minutos"]
+            else:
+                # Calcular una sola vez
+                return int((datetime.now() - row["fecha_hora_dt"]).total_seconds() // 60)
+        else:
+            # Seguir contando normalmente si no está finalizada
+            return int((datetime.now() - row["fecha_hora_dt"]).total_seconds() // 60)
+
+    df["minutos"] = df.apply(calcular_minutos, axis=1)
 
     def semaforo(x):
         if x >= 20: return "🔴"
@@ -540,6 +554,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
