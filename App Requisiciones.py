@@ -225,7 +225,7 @@ with tab1:
         st.session_state.guardando = False
 
     if "btn_guardar_requisicion" not in st.session_state:
-    st.session_state.btn_guardar_requisicion = False
+        st.session_state.btn_guardar_requisicion = False
 
     guardar = st.button("Guardar Requisicion",key="btn_guardar",disabled=st.session_state.btn_guardar_requisicion)
 
@@ -521,6 +521,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
