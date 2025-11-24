@@ -361,36 +361,43 @@ with tab2:
     if "min_final" not in df.columns:
         df["min_final"] = None
 
+    # Normalizar columna (evita errores de tipo)
+    df["min_final"] = df["min_final"].apply(
+        lambda x: None if pd.isna(x) or x in ["", "nan", "None"] else x
+    )
+
     # Convertir fecha
     df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"], errors="coerce")
 
     # ---- FUNCIÓN PARA CALCULAR MINUTOS ----
     def calcular_minutos(row):
         # Si ya está congelado, usar ese valor
-        if pd.notna(row["min_final"]):
-            return int(row["min_final"])
+         if row["min_final"] is not None:
+             try:
+                 return int(float(row["min_final"]))
+             except:
+                 return 0
 
-        # Si no hay fecha válida → 0
+        # Si fecha no válida
         if pd.isna(row["fecha_hora_dt"]):
             return 0
 
         # Calcular minutos en tiempo real
         diff = datetime.now() - row["fecha_hora_dt"]
-        return int(diff.total_seconds() // 60)
-
+        return int(diff.total_seconds() // 60)         
+       
     # Aplicar cálculo
     df["minutos"] = df.apply(calcular_minutos, axis=1)
 
-    # ---- SEMÁFORO ----
+    # -------- SEMÁFORO --------
     def semaforo_valor(m):
         try:
             m = int(m)
         except:
             return "🟢"
-        if m <= 120:
-            return "🟢"
-        return "🔴"
+        return "🟢" if m <= 120 else "🔴"
 
+    # Aplicar cálculo
     df["semaforo"] = df["minutos"].apply(semaforo_valor)
 
     # -------------------------------------------
@@ -480,7 +487,7 @@ with tab2:
 
             # Si status pasa a final → congelar minutos
             if nuevo_status in estados_finales:
-                if pd.isna(df.at[idx, "min_final"]):
+                if df.at[idx, "min_final"] is None:
                     df.at[idx, "min_final"] = minutos_actuales
             else:
                 # Si sale de estado final → reiniciar congelamiento
@@ -580,6 +587,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
