@@ -323,7 +323,8 @@ with tab2:
         if pwd:
             if pwd == ALMACEN_PASSWORD:
                 st.session_state.almacen_auth = True
-                st.experimental_rerun()
+                st.rerun()
+                
             else:
                 st.warning("🚫 Acceso restringido.")
                 st.stop()
@@ -539,6 +540,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
