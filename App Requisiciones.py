@@ -352,53 +352,38 @@ with tab2:
     # COLUMNAS CALCULADAS
     # -------------------------------------------
 
-    from datetime import datetime
+    df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"])
 
     # Estados que detienen el contador
     estados_finales = ["Entregado", "Cancelado", "No encontrado"]
 
-    # Asegurar columna min_final
-    if "min_final" not in df.columns:
-        df["min_final"] = None
-
-    # Normalizar columna (evita errores de tipo)
-    df["min_final"] = df["min_final"].apply(
-        lambda x: None if pd.isna(x) or x in ["", "nan", "None"] else x
-    )
-
-    # Convertir fecha
-    df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"], errors="coerce")
-
-    # ---- FUNCIÓN PARA CALCULAR MINUTOS ----
     def calcular_minutos(row):
-        # Si ya está congelado, usar ese valor
-         if row["min_final"] is not None:
-             try:
-                 return int(float(row["min_final"]))
-             except:
-                 return 0
-
-        # Si fecha no válida
+        # Si la fecha es inválida → regresar 0
         if pd.isna(row["fecha_hora_dt"]):
             return 0
 
-        # Calcular minutos en tiempo real
-        diff = datetime.now() - row["fecha_hora_dt"]
-        return int(diff.total_seconds() // 60)         
-       
-    # Aplicar cálculo
+        # Si ya tiene minutos congelados → usarlos
+        if "min_final" in row and pd.notna(row["min_final"]):
+            return int(row["min_final"])
+
+        # Si status está entre finales → congelar minutos en el momento
+        if row["status"] in estados_finales:
+            diff = (datetime.now() - row["fecha_hora_dt"]).total_seconds() // 60
+            return int(diff)
+
+        # Si NO es final → seguir contando
+        diff = (datetime.now() - row["fecha_hora_dt"]).total_seconds() // 60
+        return int(diff)
+
+    # Calcular columna de minutos
     df["minutos"] = df.apply(calcular_minutos, axis=1)
 
-    # -------- SEMÁFORO --------
-    def semaforo_valor(m):
-        try:
-            m = int(m)
-        except:
-            return "🟢"
-        return "🟢" if m <= 120 else "🔴"
-
-    # Aplicar cálculo
-    df["semaforo"] = df["minutos"].apply(semaforo_valor)
+    # ----------------------------------------------------
+    # Semáforo
+    # ----------------------------------------------------
+    df["semaforo"] = df["minutos"].apply(
+        lambda m: "🟢" if m <= 10 else "🟡" if m <= 20 else "🔴"
+    )
 
     # -------------------------------------------
     # FILTROS
@@ -587,6 +572,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
