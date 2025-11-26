@@ -352,38 +352,57 @@ with tab2:
     # COLUMNAS CALCULADAS
     # -------------------------------------------
 
-    df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"])
+    # Convertir fecha a datetime
+    df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"], errors="coerce")
 
-    # Estados que detienen el contador
+    # Estados finales donde se debe CONGELAR el contador
     estados_finales = ["Entregado", "Cancelado", "No encontrado"]
 
+    # Crear columna min_final si NO existe o venía vacía
+    if "min_final" not in df.columns:
+        df["min_final"] = None
+    else:
+        df["min_final"] = df["min_final"].where(df["min_final"].notna(), None)
+
+    # ------------------------------------------------------------
+    # CALCULAR MINUTOS (con congelamiento)
+    # ------------------------------------------------------------
     def calcular_minutos(row):
-        # Si la fecha es inválida → regresar 0
+
+        # Si no tiene fecha válida → 0 minutos
         if pd.isna(row["fecha_hora_dt"]):
             return 0
 
-        # Si ya tiene minutos congelados → usarlos
-        if "min_final" in row and pd.notna(row["min_final"]):
+        # Si ya tiene un valor congelado → respetarlo
+        if pd.notna(row.get("min_final", None)):
             return int(row["min_final"])
 
-        # Si status está entre finales → congelar minutos en el momento
+        # Si el status es final → congelar por primera vez
         if row["status"] in estados_finales:
             diff = (datetime.now() - row["fecha_hora_dt"]).total_seconds() // 60
             return int(diff)
 
-        # Si NO es final → seguir contando
+        # Caso normal → seguir contando minutos
         diff = (datetime.now() - row["fecha_hora_dt"]).total_seconds() // 60
         return int(diff)
 
-    # Calcular columna de minutos
+    # Aplicar minutos
     df["minutos"] = df.apply(calcular_minutos, axis=1)
 
     # ----------------------------------------------------
     # Semáforo
     # ----------------------------------------------------
-    df["semaforo"] = df["minutos"].apply(
-        lambda m: "🟢" if m <= 10 else "🟡" if m <= 20 else "🔴"
-    )
+    def semaforo(m):
+        if m >= 120:
+            return "🔴"
+        if m >= 60:
+            return "🟡"
+        return "🟢"
+
+    df["semaforo"] = df["minutos"].apply(semaforo)
+
+    # Ordenar correctamente
+    df = df.sort_values(by="fecha_hora_dt", ascending=False)
 
     # -------------------------------------------
     # FILTROS
@@ -459,27 +478,28 @@ with tab2:
         with col2:
             nuevo_issue = st.checkbox("Issue", value=(str(fila["issue"])=="True"))
 
+        # ===========================================================
+        # 1. Guardar cambios en CSV + CONGELAR MINUTOS si status final
+        # ===========================================================
+
         if st.button("Guardar cambios"):
 
-            # ===========================================================
-            # 1. Guardar cambios en CSV + CONGELAR MINUTOS si status final
-            # ===========================================================
+            # Recalcular el tiempo exacto del registro que se está actualizando
+            for idx, row in df.iterrows():
+                minutos_actuales = df.at[idx, "minutos"]
 
-            estados_finales = ["Entregado", "Cancelado", "No encontrado"]
+                if row["status"] in estados_finales:
+                    # Congelar minutos si es la primera vez
+                    if pd.isna(df.at[idx, "min_final"]):
+                        df.at[idx, "min_final"] = minutos_actuales
+                else:
+                    # Borrar minutos congelados si vuelve a estado normal
+                    df.at[idx, "min_final"] = None
 
-            # Obtener minutos actuales antes de actualizar
-            minutos_actuales = df.at[idx, "minutos"]
-
-            # Si status pasa a final → congelar minutos
-            if nuevo_status in estados_finales:
-                if df.at[idx, "min_final"] is None:
-                    df.at[idx, "min_final"] = minutos_actuales
-            else:
-                # Si sale de estado final → reiniciar congelamiento
-                df.at[idx, "min_final"] = None
-
-            # Guardar en CSV
+            # Guardar CSV
             guardar_datos(df)
+
+            st.success("Cambios guardados correctamente.")
 
             # ============================================
             # 2) ACTUALIZAR TAMBIÉN EN SMARTSHEET
@@ -572,6 +592,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
