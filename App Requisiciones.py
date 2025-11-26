@@ -355,6 +355,14 @@ with tab2:
     # Convertir fecha a datetime
     df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"], errors="coerce")
 
+    # Normalizar columna min_final (evitar textos, NaN, vacíos)
+    if "min_final" not in df.columns:
+        df["min_final"] = None
+    else:
+        df["min_final"] = df["min_final"].apply(
+          lambda x: int(x) if pd.notna(x) and str(x).isdigit() else None
+        )
+
     # Estados finales donde se debe CONGELAR el contador
     estados_finales = ["Entregado", "Cancelado", "No encontrado"]
 
@@ -373,11 +381,16 @@ with tab2:
         if pd.isna(row["fecha_hora_dt"]):
             return 0
 
-        # Si ya tiene un valor congelado → respetarlo
-        if pd.notna(row.get("min_final", None)):
-            return int(row["min_final"])
+        min_final = row.get("min_final", None)
 
-        # Si el status es final → congelar por primera vez
+        # Si ya está congelado y es un número válido → úsalo
+        if min_final is not None:
+            try:
+                return int(min_final)
+            except:
+                pass # si está dañado, lo recalculamos
+
+        # Si el status es final → congelar una sola vez
         if row["status"] in estados_finales:
             diff = (datetime.now() - row["fecha_hora_dt"]).total_seconds() // 60
             return int(diff)
@@ -592,6 +605,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
