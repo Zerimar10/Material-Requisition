@@ -299,10 +299,6 @@ with tab1:
 # TAB 2 — PANEL DE ALMACÉN
 # ============================================================
 
-# ============================================================
-# TAB 2 — PANEL DE ALMACÉN
-# ============================================================
-
 with tab2:
 
     st.markdown("<div class='titulo-seccion'>Panel de Almacén</div>", unsafe_allow_html=True)
@@ -512,6 +508,8 @@ with tab2:
             # Guardar CSV
             guardar_datos(df)
 
+            df = cargar_datos().fillna("")
+
             st.success("Cambios guardados correctamente.")
 
             # ============================================
@@ -560,7 +558,6 @@ with tab2:
             st.success("✓ Requisición actualizada.")
             st.experimental_rerun()
 
-
     # ================================
     # EXPORTAR A CSV CON TIMESTAMP
     # ================================
@@ -598,6 +595,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
