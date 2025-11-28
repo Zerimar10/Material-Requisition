@@ -527,8 +527,6 @@ with tab2:
                 # Descargar hoja actual
                 sheet = client.Sheets.get_sheet(sheet_id)
 
-                st.write("DEBUG: Hoja descargada correctamente.")
-
                 row_id_smartsheet = None
 
                 # Buscar coincidencia por columna ID
@@ -537,8 +535,9 @@ with tab2:
                         if cell.column_id == 675055919648644: # COLUMNA ID
                             if str(cell.value).strip() == str(id_editar).strip():
                                 row_id_smartsheet = row.id
-                                st.write(f"DEBUG: ID coincide con RowID {row_id_smartsheet}")
                                 break
+                    if row_id_smartsheet:
+                        break
 
                 if row_id_smartsheet is None:
                     st.warning("⚠️ No se encontró el ID exacto en Smartsheet.")
@@ -552,13 +551,7 @@ with tab2:
                         {"column_id": 4834285857755012, "value": bool(nuevo_issue)},
                     ]
 
-                    st.write("DEBUG: Enviando update_row a Smartsheet...")
-                    response = client.Sheets.update_rows(sheet_id, [update_row])
-
-                    st.write("DEBUG Response:", response)
-
-                    if hasattr(response, "message"):
-                        st.write("DEBUG response.message:", response.message)
+                    client.Sheets.update_rows(sheet_id, [update_row])
 
             except Exception as e:
                 st.error(f"❌ Error al actualizar Smartsheet: {e}")
@@ -605,6 +598,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
