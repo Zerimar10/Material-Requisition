@@ -299,26 +299,6 @@ with tab1:
 # TAB 2 — PANEL DE ALMACÉN
 # ============================================================
 
-# ==============================================
-# OBTENER COLUMN IDS DE SMARTSHEET (TEMPORAL)
-# ==============================================
-import smartsheet
-
-if st.sidebar.button("Obtener Column IDs"):
-    try:
-        token = st.secrets["SMARTSHEET_TOKEN"]
-        sheet_id = st.secrets["SHEET_ID"]
-
-        client = smartsheet.Smartsheet(token)
-        sheet = client.Sheets.get_sheet(sheet_id)
-
-        st.write("### Column IDs encontrados:")
-        for col in sheet.columns:
-            st.write(f"{col.title} → {col.id}")
-
-    except Exception as e:
-        st.error(f"Error: {e}")
-
 with tab2:
 
     st.markdown("<div class='titulo-seccion'>Panel de Almacén</div>", unsafe_allow_html=True)
@@ -615,6 +595,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
