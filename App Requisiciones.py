@@ -5,7 +5,6 @@ import time
 import smartsheet
 
 ALMACEN_PASSWORD = st.secrets["ALMACEN_PASSWORD"]
-st.write("Sheet ID usado:", SHEET_ID)
 
 # ============================================================
 # CONFIGURACIÓN GENERAL
@@ -532,6 +531,7 @@ with tab2:
                 st.write(e)
                 st.error("❌ Error al guardar cambios.")
                 st.write(e)
+
 
 
 
