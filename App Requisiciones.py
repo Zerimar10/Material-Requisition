@@ -306,7 +306,7 @@ with tab1:
 
         # Calcular hora local (UTC-6)
         from datetime import datetime, timedelta
-        hora_local = datetime.utcnow() - timedelta(hours=6)
+        hora_local = datetime.utcnow() - timedelta(hours=7)
 
         nueva_fila = {
             "ID": ID,
@@ -419,7 +419,7 @@ with tab2:
     # ============================================================
 
     # Convertir fecha a datetime
-    df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"], errors="coerce") - pd.Timedelta(hours=6)
+    df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"], errors="coerce") - pd.Timedelta(hours=7)
 
     df["cantidad"] = pd.to_numeric(df["cantidad"], errors="coerce").fillna(0).astype(int)
 
@@ -581,6 +581,7 @@ with tab2:
             except Exception as e:
                 st.error("❌ Error al guardar cambios en Smartsheet.")
                 st.write(e)    
+
 
 
 
