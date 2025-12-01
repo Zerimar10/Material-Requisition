@@ -476,13 +476,16 @@ with tab2:
     # FILTROS
     # -------------------------------------------
 
-    colA, colB = st.columns(2)
+    colA, colB, colC = st.columns(3)
 
     with colA:
         filtro_cuarto = st.multiselect("Filtrar por cuarto", df["cuarto"].unique())
 
     with colB:
         filtro_status = st.multiselect("Filtrar por status", df["status"].unique())
+
+    with colC:
+        filtro_issue = st.selectbox("Filtrar por issue", ["Todos", "Con issue", "Sin issue"], index=0)
 
     df_filtrado = df.copy()
 
@@ -491,6 +494,12 @@ with tab2:
 
     if filtro_status:
         df_filtrado = df_filtrado[df_filtrado["status"].isin(filtro_status)]
+
+    if filtro_issue == "Con issue":
+        df_filtrado = df_filtrado[df_filtrado["issue"] == True]
+
+    elif filtro_issue == "Sin issue":
+        df_filtrado = df_filtrado[df_filtrado["issue"] == False]
 
     # -------------------------------------------
     # TABLA PRINCIPAL
@@ -581,6 +590,7 @@ with tab2:
             except Exception as e:
                 st.error("❌ Error al guardar cambios en Smartsheet.")
                 st.write(e)    
+
 
 
 
