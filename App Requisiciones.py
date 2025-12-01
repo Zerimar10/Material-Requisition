@@ -81,36 +81,29 @@ def cargar_desde_smartsheet():
 # FUNCIÓN → GENERAR ID CONSECUTIVO DESDE SMARTSHEET
 # ============================================================
 
-def generar_id_siguiente():
-    """
-    Lee la hoja de Smartsheet y devuelve el siguiente ID consecutivo
-    con formato REQ-0001, REQ-0002, etc.
-    """
-    try:
-        client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
-        sheet = client.Sheets.get_sheet(SHEET_ID)
+def generar_id_desde_smartsheet():
+    client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
+    sheet = client.Sheets.get_sheet(SHEET_ID)
 
-        max_num = 0
+    ids = []
 
-        for row in sheet.rows:
-            for cell in row.cells:
-                # Buscamos la celda de la columna ID
-                if cell.column_id == COL_ID["ID"]:
-                    val = str(cell.value) if cell.value is not None else ""
-                    m = re.match(r"REQ-(\d+)$", val.strip())
-                    if m:
-                        n = int(m.group(1))
-                        if n > max_num:
-                            max_num = n
-                    break # ya encontramos la columna ID en esta fila
+    for row in sheet.rows:
+        for cell in row.cells:
+            if cell.column_id == COL_ID["ID"]:
+                val = str(cell.value) if cell.value is not None else ""
+                if val.startswith("REQ-"):
+                    try:
+                        num = int(val.replace("REQ-", ""))
+                        ids.append(num)
+                    except:
+                        pass
 
-        nuevo_num = max_num + 1
-        return f"REQ-{nuevo_num:04d}"
+    # Si no hay ningún ID todavía
+    if not ids:
+        return "REQ-0001"
 
-    except Exception as e:
-        st.write("DEBUG generar_id_siguiente error:", e)
-        # Fallback para no romper el flujo (aunque el número será largo)
-        return f"REQ-{int(datetime.now().timestamp())}"
+    nuevo_num = max(ids) + 1
+    return f"REQ-{nuevo_num:04d}"
 
 st.set_page_config(page_title="Sistema de Requisiciones", layout="wide")
 
@@ -579,6 +572,7 @@ with tab2:
                 st.write(e)
                 st.error("❌ Error al guardar cambios.")
                 st.write(e)
+
 
 
 
