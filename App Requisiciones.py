@@ -446,8 +446,6 @@ with tab2:
     # FILTROS
     # -------------------------------------------
 
-    st.markdown("<div class='subtitulo-seccion'>Filtrar información</div>", unsafe_allow_html=True)
-
     colA, colB = st.columns(2)
 
     with colA:
@@ -518,6 +516,7 @@ with tab2:
                 st.write(e)
                 st.error("❌ Error al guardar cambios.")
                 st.write(e)
+
 
 
 
