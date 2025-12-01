@@ -6,7 +6,6 @@ import smartsheet
 
 ALMACEN_PASSWORD = st.secrets["ALMACEN_PASSWORD"]
 
-
 # ============================================================
 # CONFIGURACIÓN GENERAL
 # ============================================================
@@ -32,6 +31,60 @@ COL_ID = {
     "issue": 4834285857755012,
     "minuto_final": 64199137644420,
 }
+
+# ============================================================
+# FUNCIÓN → CARGAR DATOS DESDE SMARTSHEET
+# ============================================================
+
+def cargar_desde_smartsheet():
+    client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
+    sheet = client.Sheets.get_sheet(SHEET_ID)
+    rows_data = []
+
+    for row in sheet.rows:
+        data = {"row_id": row.id}
+
+        for cell in row.cells:
+            cid = cell.column_id
+            val = cell.value
+
+            if cid == COL_ID["ID"]:
+                data["ID"] = val
+            elif cid == COL_ID["fecha_hora"]:
+                data["fecha_hora"] = val
+            elif cid == COL_ID["cuarto"]:
+                data["cuarto"] = val
+            elif cid == COL_ID["work_order"]:
+                data["work_order"] = val
+            elif cid == COL_ID["numero_parte"]:
+                data["numero_parte"] = val
+            elif cid == COL_ID["numero_lote"]:
+                data["numero_lote"] = val
+            elif cid == COL_ID["cantidad"]:
+                data["cantidad"] = val
+            elif cid == COL_ID["motivo"]:
+                data["motivo"] = val
+            elif cid == COL_ID["status"]:
+                data["status"] = val
+            elif cid == COL_ID["almacenista"]:
+                data["almacenista"] = val
+            elif cid == COL_ID["issue"]:
+                data["issue"] = bool(val) if val is not None else False
+            elif cid == COL_ID["minuto_final"]:
+                data["min_final"] = val
+
+        if "ID" in data:
+            rows_data.append(data)
+
+    df = pd.DataFrame(rows_data)
+
+    columnas = [
+        "ID", "fecha_hora", "cuarto", "work_order", "numero_parte",
+        "numero_lote", "cantidad", "motivo", "status",
+        "almacenista", "issue", "min_final", "row_id"
+    ]
+
+    return df[columnas]
 
 st.set_page_config(page_title="Sistema de Requisiciones", layout="wide")
 
@@ -229,62 +282,54 @@ with tab1:
 
     if st.session_state.guardando:
 
-        df = cargar_datos()
+        # Generar ID único
+        ID = f"REQ-{int(datetime.now().timestamp())}"
 
         nueva_fila = {
-            "ID": generar_id(),
+            "ID": ID,
             "fecha_hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "cuarto": st.session_state.form_cuarto,
-            "work_order": st.session_state.form_work,
-            "numero_parte": st.session_state.form_parte,
-            "numero_lote": st.session_state.form_lote,
-            "cantidad": st.session_state.form_cantidad,
-            "motivo": st.session_state.form_motivo,
+            "cuarto": cuarto,
+            "work_order": work,
+            "numero_parte": parte,
+            "numero_lote": lote,
+            "cantidad": cantidad,
+            "motivo": motivo,
             "status": "Pendiente",
             "almacenista": "",
             "issue": False,
+            "min_final": None
         }
 
-        df = pd.concat([df, pd.DataFrame([nueva_fila])], ignore_index=True)
-        guardar_datos(df)
-
-        # ======================================================
-        # ENVIAR TAMBIÉN LA REQUISICIÓN A SMARTSHEET (CORRECTO)
-        # ======================================================
+        # -----------------------------
+        # ENVIAR DIRECTO A SMARTSHEET
+        # -----------------------------
         try:
-            import smartsheet
-
-            token = st.secrets["SMARTSHEET_TOKEN"]
-            sheet_id = int(st.secrets["SHEET_ID"])
-
-            client = smartsheet.Smartsheet(token)
+            client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
 
             new_row = smartsheet.models.Row()
             new_row.to_top = True
 
             new_row.cells = [
-                {"column_id": 675055919648644, "value": nueva_fila["ID"]},
-                {"column_id": 612161207095172, "value": nueva_fila["fecha_hora"]},
-                {"column_id": 5115760834465668, "value": nueva_fila["cuarto"]},
-                {"column_id": 2863961020780420, "value": nueva_fila["work_order"]},
-                {"column_id": 7367560648150916, "value": nueva_fila["numero_parte"]},
-                {"column_id": 1738061113937796, "value": nueva_fila["numero_lote"]},
-                {"column_id": 6241660741308292, "value": nueva_fila["cantidad"]},
-                {"column_id": 3989860927623044, "value": nueva_fila["motivo"]},
-                {"column_id": 8493460554993540, "value": nueva_fila["status"]},
-                {"column_id": 330686230384516, "value": nueva_fila["almacenista"]},
-                {"column_id": 4834285857755012, "value": bool(nueva_fila["issue"])},
+                {"column_id": COL_ID["ID"], "value": nueva_fila["ID"]},
+                {"column_id": COL_ID["fecha_hora"], "value": nueva_fila["fecha_hora"]},
+                {"column_id": COL_ID["cuarto"], "value": nueva_fila["cuarto"]},
+                {"column_id": COL_ID["work_order"], "value": nueva_fila["work_order"]},
+                {"column_id": COL_ID["numero_parte"], "value": nueva_fila["numero_parte"]},
+                {"column_id": COL_ID["numero_lote"], "value": nueva_fila["numero_lote"]},
+                {"column_id": COL_ID["cantidad"], "value": nueva_fila["cantidad"]},
+                {"column_id": COL_ID["motivo"], "value": nueva_fila["motivo"]},
+                {"column_id": COL_ID["status"], "value": nueva_fila["status"]},
+                {"column_id": COL_ID["almacenista"], "value": ""},
+                {"column_id": COL_ID["issue"], "value": False},
+                {"column_id": COL_ID["minuto_final"], "value": None},
             ]
 
-            response = client.Sheets.add_rows(sheet_id, [new_row])
-
-            if response.message != "SUCCESS":
-                st.error(f"❌ Error Smartsheet: {response.message}")
+            client.Sheets.add_rows(SHEET_ID, [new_row])
 
         except Exception as e:
             st.error("❌ Error al enviar a Smartsheet.")
             st.write(e)
-
+            
         # Fin del proceso
         st.session_state.guardando = False
         st.session_state.msg_ok = True
@@ -303,20 +348,22 @@ with tab2:
     # ---------------------------------------
     # 1) Inicializar el estado de autenticación
     # ---------------------------------------
-    if "almacen_auth" not in st.session_state:
-        st.session_state.almacen_auth = False
+    st.write("Ingrese contraseña:")
+    
+    if "almacen_autenticando" not in st.session_state:
+        st.session_state.almacen_autenticando = False
 
     # ---------------------------------------
     # 2) Si NO está autenticado → pedir contraseña
     # ---------------------------------------
-    if not st.session_state.almacen_auth:
+    if not st.session_state.almacen_autenticando:
 
         pwd = st.text_input("Ingrese contraseña:", type="password", key="pwd_input")
 
         if pwd:
             if pwd == ALMACEN_PASSWORD:
-                st.session_state.almacen_auth = True
-                st.rerun()
+                st.session_state.almacen_autenticando = True
+                st.experimental_rerun()
                 
             else:
                 st.warning("🚫 Acceso restringido.")
@@ -338,97 +385,52 @@ with tab2:
     """, unsafe_allow_html=True)
 
     # Ahora carga el panel normalmente
-    df = cargar_desde_smartsheet()
-    df = df.fillna("")
-        client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
-        sheet = client.Sheets.get_sheet(SHEET_ID)
-        rows_data = []
+    df = cargar_desde_smartsheet().fillna("")
 
-        for row in sheet.rows:
-            data = {"row_id": row.id}
-            for cell in row.cells:
-                cid, val = cell.column_id, cell.value
-
-                if cid == COL_ID["ID"]:
-                    data["ID"] = val
-                elif cid == COL_ID["fecha_hora"]:
-                    data["fecha_hora"] = val
-                elif cid == COL_ID["cuarto"]:
-                    data["cuarto"] = val
-                elif cid == COL_ID["work_order"]:
-                    data["work_order"] = val
-                elif cid == COL_ID["numero_parte"]:
-                    data["numero_parte"] = val
-                elif cid == COL_ID["numero_lote"]:
-                    data["numero_lote"] = val
-                elif cid == COL_ID["cantidad"]:
-                    data["cantidad"] = val
-                elif cid == COL_ID["motivo"]:
-                    data["motivo"] = val
-                elif cid == COL_ID["status"]:
-                    data["status"] = val
-                elif cid == COL_ID["almacenista"]:
-                    data["almacenista"] = val
-                elif cid == COL_ID["issue"]:
-                    data["issue"] = bool(val) if val is not None else False
-                elif cid == COL_ID["minuto_final"]:
-                    data["minuto_final"] = val
-
-            if "ID" in data:
-                rows_data.append(data)
-
-        df = pd.DataFrame(rows_data)
-
-        # Ordenamos columnas para mantener consistencia
-        columnas = [
-            "ID","fecha_hora","cuarto","work_order","numero_parte",
-            "numero_lote","cantidad","motivo","status","almacenista",
-            "issue","minuto_final"
-        ]
-
-        return df[columnas]
     # ============================================================
     # CALCULAR MINUTOS + CONGELAMIENTO
     # ============================================================
 
-    # 1) Convertir fecha
+    # Convertir fecha a datetime
     df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"], errors="coerce")
 
-    # 2) Normalizar columna minuto_final
-    if "minuto_final" not in df.columns:
-        df["minuto_final"] = None
+    # Estados donde se congela el contador
+    estados_finales = ["Entregado", "Cancelado", "No encontrado"]
+    
+    # Normalizar min_final
+    if "min_final" not in df.columns:
+        df["min_final"] = None
     else:
-        df["minuto_final"] = df["minuto_final"].apply(
+        df["min_final"] = df["min_final"].apply(
             lambda x: int(x) if pd.notna(x) and str(x).isdigit() else None
         )
 
-    # 3) Estados donde se congela el contador
-    estados_finales = ["Entregado", "Cancelado", "No encontrado"]
-
-    # 4) Función para calcular minutos
+    # Función para calcular minutos con congelamiento
     def calcular_minutos(row):
+
+        # Si fecha inválida → 0
         if pd.isna(row["fecha_hora_dt"]):
             return 0
 
-        minuto_final = row.get("minuto_final", None)
+        # Si ya está congelado
+        if row["min_final"] is not None:
+            try:
+                return int(row["min_final"])
+            except:
+                pass
 
-        # Ya está congelado
-        if minuto_final is not None:
-            return minuto_final
-
-        # Si llegó a estado final → congelar
+        # Si status es final → congelar solo una vez
         if row["status"] in estados_finales:
-            diff = (datetime.now() - row["fecha_hora_dt"]).total_seconds() / 60
+            diff = (datetime.now() - row["fecha_hora_dt"]).total_seconds() // 60
             return int(diff)
 
-        # Caso normal → contar minutos
-        diff = (datetime.now() - row["fecha_hora_dt"]).total_seconds() / 60
+        # Caso normal
+        diff = (datetime.now() - row["fecha_hora_dt"]).total_seconds() // 60
         return int(diff)
 
-    # 5) Aplicar cálculo
     df["minutos"] = df.apply(calcular_minutos, axis=1)
 
-    # 6) Semáforo
+    # Función semáforo
     def semaforo(m):
         if m >= 120:
             return "🔴"
@@ -438,237 +440,82 @@ with tab2:
 
     df["semaforo"] = df["minutos"].apply(semaforo)
 
-    # 7) Ordenar resultados
+    # Orden correcto
     df = df.sort_values(by="fecha_hora_dt", ascending=False)
 
     # -------------------------------------------
     # FILTROS
     # -------------------------------------------
 
-    st.subheader("Filtrar información")
+    st.markdown("<div class='subtitulo-seccion'>Filtrar información</div>", unsafe_allow_html=True)
 
-    colf1, colf2, colf3 = st.columns(3)
+    colA, colB = st.columns(2)
 
-    with colf1:
-        filtro_cuarto = st.selectbox("Filtrar por cuarto", [""] + sorted(df["cuarto"].unique()))
+    with colA:
+        filtro_cuarto = st.multiselect("Filtrar por cuarto", df["cuarto"].unique())
 
-    with colf2:
-        filtro_status = st.multiselect(
-            "Filtrar por status",
-            ["Pendiente","En proceso","Entregado","Cancelado","No encontrado"]
-        )
+    with colB:
+        filtro_status = st.multiselect("Filtrar por status", df["status"].unique())
 
-    with colf3:
-        filtro_issue = st.multiselect("Issue", ["True","False"])
-
-    df_fil = df.copy()
+    df_filtrado = df.copy()
 
     if filtro_cuarto:
-        df_fil = df_fil[df_fil["cuarto"] == filtro_cuarto]
+        df_filtrado = df_filtrado[df_filtrado["cuarto"].isin(filtro_cuarto)]
 
     if filtro_status:
-        df_fil = df_fil[df_fil["status"].isin(filtro_status)]
-
-    if filtro_issue:
-        df_fil = df_fil[df_fil["issue"].astype(str).isin(filtro_issue)]
+        df_filtrado = df_filtrado[df_filtrado["status"].isin(filtro_status)]
 
     # -------------------------------------------
     # TABLA PRINCIPAL
     # -------------------------------------------
 
-    st.subheader("Requisiciones registradas")
-
-    st.dataframe(
-        df_fil[[
-            "ID","fecha_hora","cuarto","work_order","numero_parte",
-            "numero_lote","cantidad","motivo","almacenista",
-            "status","issue","minutos","semaforo"
-        ]],
-        use_container_width=True,
-        height=350
-    )
+    st.markdown("<div class='subtitulo-seccion'>Requisiciones registradas</div>", unsafe_allow_html=True)
+    st.dataframe(df_filtrado, hide_index=True, use_container_width=True)
 
     # -------------------------------------------
     # EDITAR REQUISICIÓN
     # -------------------------------------------
 
-    st.subheader("Editar requisición")
+    st.markdown("<div class='subtitulo-seccion'>Editar requisición</div>", unsafe_allow_html=True)
 
-    id_editar = st.selectbox("Seleccionar ID", [""] + list(df["ID"]))
+    lista_ids = df["ID"].tolist()
+    id_editar = st.selectbox("Seleccione ID a editar:", lista_ids)
 
     if id_editar:
 
-        fila = df[df["ID"] == id_editar].iloc[0]
+        row_edit = df[df["ID"] == id_editar].iloc[0]
         idx = df[df["ID"] == id_editar].index[0]
 
-        col1, col2 = st.columns(2)
-
-        with col1:
-            nuevo_status = st.selectbox(
-                "Status",
-                ["Pendiente","En proceso","Entregado","Cancelado","No encontrado"],
-                index=["Pendiente","En proceso","Entregado","Cancelado","No encontrado"].index(fila["status"])
-            )
-
-            nuevo_almacenista = st.text_input("Almacenista", fila["almacenista"])
-
-        with col2:
-            nuevo_issue = st.checkbox("Issue", value=(str(fila["issue"])=="True"))
-
-        # ===========================================================
-        # 1. Guardar cambios en CSV + CONGELAR MINUTOS si status final
-        # ===========================================================
+        nuevo_status = st.selectbox("Nuevo status:", df["status"].unique(), index=list(df["status"].unique()).index(row_edit["status"]))
+        nuevo_almacenista = st.text_input("Almacenista:", value=row_edit["almacenista"])
+        nuevo_issue = st.checkbox("Issue", value=row_edit["issue"])
 
         if st.button("Guardar cambios"):
 
-            # Recalcular el tiempo exacto del registro que se está actualizando
-            for idx, row in df.iterrows():
-                minutos_actuales = df.at[idx, "minutos"]
+            # Congelar minutos si llega a un estado final
+            min_final_val = row_edit["minutos"] if nuevo_status in estados_finales else None
 
-                if row["status"] in estados_finales:
-                    # Congelar minutos si es la primera vez
-                    if pd.isna(df.at[idx, "minuto_final"]):
-                        df.at[idx, "minuto_final"] = minutos_actuales
-                else:
-                    # Borrar minutos congelados si vuelve a estado normal
-                    df.at[idx, "minuto_final"] = None
-
-            # Guardar CSV
-            guardar_datos(df)
-
-            df = cargar_desde_smartsheet()
-
-            st.success("Cambios guardados correctamente.")
-
-            # ============================================
-            # 2) ACTUALIZAR TAMBIÉN EN SMARTSHEET
-            # ============================================
+            # Actualizar en Smartsheet
             try:
-                import smartsheet
+                client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
 
-                token = st.secrets["SMARTSHEET_TOKEN"]
-                sheet_id = int(st.secrets["SHEET_ID"])
-                client = smartsheet.Smartsheet(token)
+                update_row = smartsheet.models.Row()
+                update_row.id = row_edit["row_id"]
 
-                # Descargar hoja actual
-                sheet = client.Sheets.get_sheet(sheet_id)
+                update_row.cells = [
+                    {"column_id": COL_ID["status"], "value": nuevo_status},
+                    {"column_id": COL_ID["almacenista"], "value": nuevo_almacenista},
+                    {"column_id": COL_ID["issue"], "value": nuevo_issue},
+                    {"column_id": COL_ID["minuto_final"], "value": min_final_val},
+                ]
 
-                row_id_smartsheet = None
+                client.Sheets.update_rows(SHEET_ID, [update_row])
 
-                # Buscar coincidencia por columna ID
-                for row in sheet.rows:
-                    for cell in row.cells:
-                        if cell.column_id == 675055919648644: # COLUMNA ID
-                            if str(cell.value).strip() == str(id_editar).strip():
-                                row_id_smartsheet = row.id
-                                break
-                    if row_id_smartsheet:
-                        break
-
-                if row_id_smartsheet is None:
-                    st.warning("⚠️ No se encontró el ID exacto en Smartsheet.")
-                else:
-                    update_row = smartsheet.models.Row()
-                    update_row.id = row_id_smartsheet
-
-                    update_row.cells = [
-                        {"column_id": 8493460554993540, "value": nuevo_status},
-                        {"column_id": 330686230384516, "value": nuevo_almacenista},
-                        {"column_id": 4834285857755012, "value": bool(nuevo_issue)},
-                    ]
-
-                    client.Sheets.update_rows(sheet_id, [update_row])
+                st.success("Cambios guardados correctamente.")
+                st.experimental_rerun()
 
             except Exception as e:
-                st.error(f"❌ Error al actualizar Smartsheet: {e}")
-
-            # Mensaje final
-            st.success("✓ Requisición actualizada.")
-            st.experimental_rerun()
-
-    # ================================
-    # EXPORTAR A CSV CON TIMESTAMP
-    # ================================
-    from datetime import datetime
-
-    st.markdown("### 📤 Exportar datos")
-
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
-    # Crear columnas para alinear a la derecha
-    col_a, col_b, col_c = st.columns([5, 5, 2]) # Ajusta proporciones si quieres
-
-    with col_c:
-        # Exportar filtrado
-        csv_filtrado = df_fil.to_csv(index=False).encode("utf-8")
-        nombre_filtrado = f"requisiciones_filtradas_{timestamp}.csv"
-
-        st.download_button(
-            label="⬇️ Exportar requisiciones filtradas",
-            data=csv_filtrado,
-            file_name=nombre_filtrado,
-            mime="text/csv",
-            use_container_width=True
-        )
-
-        # Exportar base completa
-        df_base_export = cargar_desde_smartsheet()
-        csv_completo = df_base_export.to_csv(index=False).encode("utf-8")
-        nombre_completo = f"requisiciones_completas_{timestamp}.csv"
-
-        st.download_button(
-            label="⬇️ Exportar base completa",
-            data=csv_completo,
-            file_name=nombre_completo,
-            mime="text/csv",
-            use_container_width=True
-        )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                st.error("❌ Error al guardar cambios.")
+                st.write(e)
+                st.error("❌ Error al guardar cambios.")
+                st.write(e)
