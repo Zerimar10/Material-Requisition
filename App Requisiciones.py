@@ -348,7 +348,6 @@ with tab2:
     # ---------------------------------------
     # 1) Inicializar el estado de autenticación
     # ---------------------------------------
-    st.write("Ingrese contraseña:")
     
     if "almacen_autenticando" not in st.session_state:
         st.session_state.almacen_autenticando = False
@@ -519,3 +518,4 @@ with tab2:
                 st.write(e)
                 st.error("❌ Error al guardar cambios.")
                 st.write(e)
+
