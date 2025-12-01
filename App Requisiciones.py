@@ -339,6 +339,7 @@ with tab2:
 
     # Ahora carga el panel normalmente
     def cargar_desde_smartsheet():
+        st.write("Columnas actuales:"df.columns.tolist())
         client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
         sheet = client.Sheets.get_sheet(SHEET_ID)
         rows_data = []
@@ -622,6 +623,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
