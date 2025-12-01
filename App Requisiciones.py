@@ -42,49 +42,26 @@ def cargar_desde_smartsheet():
     rows_data = []
 
     for row in sheet.rows:
-        data = {"row_id": row.id}
+        data = {}
 
         for cell in row.cells:
             cid = cell.column_id
             val = cell.value
 
-            if cid == COL_ID["ID"]:
-                data["ID"] = val
-            elif cid == COL_ID["fecha_hora"]:
-                data["fecha_hora"] = val
-            elif cid == COL_ID["cuarto"]:
-                data["cuarto"] = val
-            elif cid == COL_ID["work_order"]:
-                data["work_order"] = val
-            elif cid == COL_ID["numero_parte"]:
-                data["numero_parte"] = val
-            elif cid == COL_ID["numero_lote"]:
-                data["numero_lote"] = val
-            elif cid == COL_ID["cantidad"]:
-                data["cantidad"] = val
-            elif cid == COL_ID["motivo"]:
-                data["motivo"] = val
-            elif cid == COL_ID["status"]:
-                data["status"] = val
-            elif cid == COL_ID["almacenista"]:
-                data["almacenista"] = val
-            elif cid == COL_ID["issue"]:
-                data["issue"] = bool(val) if val is not None else False
-            elif cid == COL_ID["minuto_final"]:
-                data["min_final"] = val
+            for key, col_id in COL_ID.items():
+                if cid == col_id:
+                    data[key] = val
 
         if "ID" in data:
             rows_data.append(data)
 
     df = pd.DataFrame(rows_data)
 
-    columnas = [
-        "ID", "fecha_hora", "cuarto", "work_order", "numero_parte",
-        "numero_lote", "cantidad", "motivo", "status",
-        "almacenista", "issue", "min_final", "row_id"
-    ]
+    df = df.fillna("")
 
-    return df[columnas]
+    df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"], errors="coerce")
+
+    return df
 
 st.set_page_config(page_title="Sistema de Requisiciones", layout="wide")
 
@@ -516,6 +493,7 @@ with tab2:
                 st.write(e)
                 st.error("❌ Error al guardar cambios.")
                 st.write(e)
+
 
 
 
