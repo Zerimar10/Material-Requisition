@@ -288,16 +288,16 @@ with tab1:
         nueva_fila = {
             "ID": ID,
             "fecha_hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "cuarto": cuarto,
-            "work_order": work,
-            "numero_parte": parte,
-            "numero_lote": lote,
-            "cantidad": cantidad,
-            "motivo": motivo,
+            "cuarto": st.session_state.form_cuarto,
+            "work_order": st.session_state.form_work,
+            "numero_parte": st.session_state.form_parte,
+            "numero_lote": st.session_state.form_lote,
+            "cantidad": st.session_state.form_cantidad,
+            "motivo": st.session_state.form_motivo,
             "status": "Pendiente",
             "almacenista": "",
             "issue": False,
-            "min_final": None
+            "min_final": None,
         }
 
         # -----------------------------
@@ -518,5 +518,6 @@ with tab2:
                 st.write(e)
                 st.error("❌ Error al guardar cambios.")
                 st.write(e)
+
 
 
