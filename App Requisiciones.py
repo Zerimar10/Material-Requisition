@@ -37,32 +37,44 @@ COL_ID = {
 # ============================================================
 
 def cargar_desde_smartsheet():
-    client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
-    sheet = client.Sheets.get_sheet(SHEET_ID)
-    rows_data = []
+    try:
+        client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
+        response = client.Sheets.get_sheet(SHEET_ID)
+        sheet = response # asegurar que sheet es realmente la hoja
+        
+        rows_data = []
 
-    for row in sheet.rows:
-        data = {}
-        data["row_id"] = row.id
+        # Si sheet.rows NO existe, mostrar error útil
+        if not hasattr(sheet, "rows"):
+            st.error("❌ Error: Smartsheet no devolvió 'rows'. ¿Filtro activo en la hoja?")
+            st.stop()
 
-        for cell in row.cells:
-            cid = cell.column_id
-            val = cell.value
+        for row in sheet.rows:
+            data = {}
+            data["row_id"] = row.id
 
-            for key, col_id in COL_ID.items():
-                if cid == col_id:
-                    data[key] = val
+            for cell in row.cells:
+                cid = cell.column_id
+                val = cell.value
 
-        if "ID" in data:
-            rows_data.append(data)
+                for key, col_id in COL_ID.items():
+                    if cid == col_id:
+                        data[key] = val
 
-    df = pd.DataFrame(rows_data)
+            if "ID" in data:
+                rows_data.append(data)
 
-    df = df.fillna("")
+        df = pd.DataFrame(rows_data)
 
-    df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"], errors="coerce")
+        df = df.fillna("")
 
-    return df
+        df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"], errors="coerce")
+
+        return df
+
+    except Exception as e:
+        st.error(f"❌ Error cargando Smartsheet: {e}")
+        st.stop()
 
 # ============================================================
 # FUNCIÓN → GENERAR ID CONSECUTIVO DESDE SMARTSHEET
@@ -559,6 +571,7 @@ with tab2:
                 st.write(e)
                 st.error("❌ Error al guardar cambios.")
                 st.write(e)
+
 
 
 
