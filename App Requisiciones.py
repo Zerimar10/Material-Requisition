@@ -514,8 +514,6 @@ with tab2:
     # EDITAR REQUISICIÓN
     # -------------------------------------------
 
-    st.markdown("<div class='subtitulo-seccion'>Editar requisición</div>", unsafe_allow_html=True)
-
     # Variable de control para mostrar/ocultar formulario
     if "mostrar_edicion" not in st.session_state:
         st.session_state.mostrar_edicion = False
@@ -577,3 +575,4 @@ with tab2:
             except Exception as e:
                 st.error("❌ Error al guardar cambios en Smartsheet.")
                 st.write(e)    
+
