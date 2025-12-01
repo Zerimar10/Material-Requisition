@@ -43,6 +43,7 @@ def cargar_desde_smartsheet():
 
     for row in sheet.rows:
         data = {}
+        data["row_id"] = row.id
 
         for cell in row.cells:
             cid = cell.column_id
@@ -538,12 +539,27 @@ with tab2:
                 update_row = smartsheet.models.Row()
                 update_row.id = row_edit["row_id"]
 
-                update_row.cells = [
-                    {"column_id": COL_ID["status"], "value": nuevo_status},
-                    {"column_id": COL_ID["almacenista"], "value": nuevo_almacenista},
-                    {"column_id": COL_ID["issue"], "value": nuevo_issue},
-                    {"column_id": COL_ID["minuto_final"], "value": min_final_val},
-                ]
+                update_row.cells = []
+
+                update_row.cells.append(smartsheet.models.Cell(
+                    column_id=COL_ID["status"],
+                    value=nuevo_status
+                ))
+
+                update_row.cells.append(smartsheet.models.Cell(
+                    column_id=COL_ID["almacenista"],
+                    value=nuevo_almacenista
+                ))
+
+                update_row.cells.append(smartsheet.models.Cell(
+                    column_id=COL_ID["issue"],
+                    value=nuevo_issue
+                ))
+
+                update_row.cells.append(smartsheet.models.Cell(
+                    column_id=COL_ID["minuto_final"],
+                    value=min_final_val
+                ))
 
                 client.Sheets.update_rows(SHEET_ID, [update_row])
 
@@ -555,6 +571,7 @@ with tab2:
                 st.write(e)
                 st.error("❌ Error al guardar cambios.")
                 st.write(e)
+
 
 
 
