@@ -492,7 +492,7 @@ with tab2:
     st.markdown("<div class='subtitulo-seccion'>Requisiciones registradas</div>", unsafe_allow_html=True)
 
     # Columnas internas que no deben verse
-    columnas_ocultas = ["fecha_hora_dt","min_final"]
+    columnas_ocultas = ["fecha_hora_dt","min_final", "row_id"]
     
     # Aplicar filtros al dataframe original
     df_filtrado = df.copy()
@@ -571,6 +571,7 @@ with tab2:
                 st.write(e)
                 st.error("❌ Error al guardar cambios.")
                 st.write(e)
+
 
 
 
