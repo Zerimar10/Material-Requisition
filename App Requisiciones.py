@@ -4,6 +4,21 @@ from datetime import datetime
 import time
 import smartsheet
 
+if st.sidebar.button("Obtener Column IDs"):
+    try:
+        token = st.secrets["SMARTSHEET_TOKEN"]
+        sheet_id = st.secrets["SHEET_ID"]
+
+        client = smartsheet.Smartsheet(token)
+        sheet = client.Sheets.get_sheet(sheet_id)
+
+        st.write("### Column IDs encontrados:")
+        for col in sheet.columns:
+            st.write(f"{col.title} → {col.id}")
+
+    except Exception as e:
+        st.error(f"Error: {e}")
+
 ALMACEN_PASSWORD = st.secrets["ALMACEN_PASSWORD"]
 
 # ============================================================
@@ -510,6 +525,7 @@ with tab2:
                 st.write(e)
                 st.error("❌ Error al guardar cambios.")
                 st.write(e)
+
 
 
 
