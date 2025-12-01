@@ -444,7 +444,24 @@ with tab2:
     # -------------------------------------------
 
     st.markdown("<div class='subtitulo-seccion'>Requisiciones registradas</div>", unsafe_allow_html=True)
-    st.dataframe(df_filtrado, hide_index=True, use_container_width=True)
+
+    # Columnas internas que no deben verse
+    columnas_ocultas = ["fecha_hora_dt","min_final"]
+    
+    # Aplicar filtros al dataframe original
+    df_filtrado = df.copy()
+
+    if filtro_cuarto:
+        df_filtrado = df_filtrado[df_filtrado["cuarto"].isin(filtro_cuarto)]
+
+    if filtro_status:
+        df_filtrado = df_filtrado[df_filtrado["status"].isin(filtro_status)]
+
+    # Ocultar columnas internas DESPUÉS de filtrar
+    df_visible = df_filtrado.drop(columns=columnas_ocultas, errors="ignore")
+
+    # Mostrar tabla
+    st.dataframe(df_visible, hide_index=True, use_container_width=True)
 
     # -------------------------------------------
     # EDITAR REQUISICIÓN
@@ -493,6 +510,7 @@ with tab2:
                 st.write(e)
                 st.error("❌ Error al guardar cambios.")
                 st.write(e)
+
 
 
 
