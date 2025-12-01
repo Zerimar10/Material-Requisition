@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import time
+import smartsheet
 
 ALMACEN_PASSWORD = st.secrets["ALMACEN_PASSWORD"]
 
@@ -11,6 +12,26 @@ ALMACEN_PASSWORD = st.secrets["ALMACEN_PASSWORD"]
 # ============================================================
 
 CSV_PATH = "data/requisiciones.csv"
+
+# ============================================================
+# CONSTANTES SMARTSHEET
+# ============================================================
+SHEET_ID = 2854951320506244
+
+COL_ID = {
+    "ID": 675055919648644,
+    "fecha_hora": 612161207095172,
+    "cuarto": 5115760834465668,
+    "work_order": 2863961020780420,
+    "numero_parte": 7367560648150916,
+    "numero_lote": 1738061113937796,
+    "cantidad": 6241660741308292,
+    "motivo": 3989860927623044,
+    "status": 8493460554993540,
+    "almacenista": 330686230384516,
+    "issue": 4834285857755012,
+    "minuto_final": 64199137644420,
+}
 
 st.set_page_config(page_title="Sistema de Requisiciones", layout="wide")
 
@@ -53,30 +74,6 @@ st.markdown("""
     <div class="subtitulo-nordson">Sistema de Requisiciones</div>
 </div>
 """, unsafe_allow_html=True)
-
-# ============================================================
-# FUNCIONES DE DATOS
-# ============================================================
-
-def cargar_datos():
-    return pd.read_csv(CSV_PATH)
-
-def guardar_datos(df):
-    df.to_csv(CSV_PATH, index=False)
-
-def generar_id():
-    df = cargar_datos()
-
-    if "ID" not in df.columns or df.empty:
-        return "REQ-0001"
-
-    # Extraer solo el número
-    numeros = df["ID"].str.replace("REQ-", "").astype(int)
-
-    nuevo_num = numeros.max() + 1
-
-    return f"REQ-{nuevo_num:04d}"
-
 
 # ============================================================
 # ESTILOS VISUALES - MODO CLARO
@@ -341,66 +338,96 @@ with tab2:
     """, unsafe_allow_html=True)
 
     # Ahora carga el panel normalmente
-    df = cargar_datos().fillna("")
+    def cargar_desde_smartsheet():
+        client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
+        sheet = client.Sheets.get_sheet(SHEET_ID)
+        rows_data = []
 
+        for row in sheet.rows:
+            data = {"row_id": row.id}
+            for cell in row.cells:
+                cid, val = cell.column_id, cell.value
 
-    # -------------------------------------------
-    # COLUMNAS CALCULADAS
-    # -------------------------------------------
+                if cid == COL_ID["ID"]:
+                    data["ID"] = val
+                elif cid == COL_ID["fecha_hora"]:
+                    data["fecha_hora"] = val
+                elif cid == COL_ID["cuarto"]:
+                    data["cuarto"] = val
+                elif cid == COL_ID["work_order"]:
+                    data["work_order"] = val
+                elif cid == COL_ID["numero_parte"]:
+                    data["numero_parte"] = val
+                elif cid == COL_ID["numero_lote"]:
+                    data["numero_lote"] = val
+                elif cid == COL_ID["cantidad"]:
+                    data["cantidad"] = val
+                elif cid == COL_ID["motivo"]:
+                    data["motivo"] = val
+                elif cid == COL_ID["status"]:
+                    data["status"] = val
+                elif cid == COL_ID["almacenista"]:
+                    data["almacenista"] = val
+                elif cid == COL_ID["issue"]:
+                    data["issue"] = bool(val) if val is not None else False
+                elif cid == COL_ID["minuto_final"]:
+                    data["minuto_final"] = val
 
-    # Convertir fecha a datetime
+            if "ID" in data:
+                rows_data.append(data)
+
+        df = pd.DataFrame(rows_data)
+
+        # Ordenamos columnas para mantener consistencia
+        columnas = [
+            "ID","fecha_hora","cuarto","work_order","numero_parte",
+            "numero_lote","cantidad","motivo","status","almacenista",
+            "issue","minuto_final"
+        ]
+
+        return df[columnas]
+    # ============================================================
+    # CALCULAR MINUTOS + CONGELAMIENTO
+    # ============================================================
+
+    # 1) Convertir fecha
     df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"], errors="coerce")
 
-    # Normalizar columna min_final (evitar textos, NaN, vacíos)
-    if "min_final" not in df.columns:
-        df["min_final"] = None
+    # 2) Normalizar columna minuto_final
+    if "minuto_final" not in df.columns:
+        df["minuto_final"] = None
     else:
-        df["min_final"] = df["min_final"].apply(
-          lambda x: int(x) if pd.notna(x) and str(x).isdigit() else None
+        df["minuto_final"] = df["minuto_final"].apply(
+            lambda x: int(x) if pd.notna(x) and str(x).isdigit() else None
         )
 
-    # Estados finales donde se debe CONGELAR el contador
+    # 3) Estados donde se congela el contador
     estados_finales = ["Entregado", "Cancelado", "No encontrado"]
 
-    # Crear columna min_final si NO existe o venía vacía
-    if "min_final" not in df.columns:
-        df["min_final"] = None
-    else:
-        df["min_final"] = df["min_final"].where(df["min_final"].notna(), None)
-
-    # ------------------------------------------------------------
-    # CALCULAR MINUTOS (con congelamiento)
-    # ------------------------------------------------------------
+    # 4) Función para calcular minutos
     def calcular_minutos(row):
-
-        # Si no tiene fecha válida → 0 minutos
         if pd.isna(row["fecha_hora_dt"]):
             return 0
 
-        min_final = row.get("min_final", None)
+        minuto_final = row.get("minuto_final", None)
 
-        # Si ya está congelado y es un número válido → úsalo
-        if min_final is not None:
-            try:
-                return int(min_final)
-            except:
-                pass # si está dañado, lo recalculamos
+        # Ya está congelado
+        if minuto_final is not None:
+            return minuto_final
 
-        # Si el status es final → congelar una sola vez
+        # Si llegó a estado final → congelar
         if row["status"] in estados_finales:
-            diff = (datetime.now() - row["fecha_hora_dt"]).total_seconds() // 60
+            diff = (datetime.now() - row["fecha_hora_dt"]).total_seconds() / 60
             return int(diff)
 
-        # Caso normal → seguir contando minutos
-        diff = (datetime.now() - row["fecha_hora_dt"]).total_seconds() // 60
+        # Caso normal → contar minutos
+        diff = (datetime.now() - row["fecha_hora_dt"]).total_seconds() / 60
         return int(diff)
 
-    # Aplicar minutos
+    # 5) Aplicar cálculo
     df["minutos"] = df.apply(calcular_minutos, axis=1)
 
-    # ----------------------------------------------------
-    # Semáforo
-    # ----------------------------------------------------
+    # 6) Semáforo
     def semaforo(m):
         if m >= 120:
             return "🔴"
@@ -410,7 +437,7 @@ with tab2:
 
     df["semaforo"] = df["minutos"].apply(semaforo)
 
-    # Ordenar correctamente
+    # 7) Ordenar resultados
     df = df.sort_values(by="fecha_hora_dt", ascending=False)
 
     # -------------------------------------------
@@ -499,16 +526,16 @@ with tab2:
 
                 if row["status"] in estados_finales:
                     # Congelar minutos si es la primera vez
-                    if pd.isna(df.at[idx, "min_final"]):
-                        df.at[idx, "min_final"] = minutos_actuales
+                    if pd.isna(df.at[idx, "minuto_final"]):
+                        df.at[idx, "minuto_final"] = minutos_actuales
                 else:
                     # Borrar minutos congelados si vuelve a estado normal
-                    df.at[idx, "min_final"] = None
+                    df.at[idx, "minuto_final"] = None
 
             # Guardar CSV
             guardar_datos(df)
 
-            df = cargar_datos().fillna("")
+            df = cargar_desde_smartsheet()
 
             st.success("Cambios guardados correctamente.")
 
@@ -584,7 +611,7 @@ with tab2:
         )
 
         # Exportar base completa
-        df_base_export = cargar_datos().fillna("")
+        df_base_export = cargar_desde_smartsheet()
         csv_completo = df_base_export.to_csv(index=False).encode("utf-8")
         nombre_completo = f"requisiciones_completas_{timestamp}.csv"
 
@@ -595,6 +622,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
