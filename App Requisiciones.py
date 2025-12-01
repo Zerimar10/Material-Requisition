@@ -338,7 +338,7 @@ with tab2:
     """, unsafe_allow_html=True)
 
     # Ahora carga el panel normalmente
-    df = cargar_desde_smartsheet():
+    df = cargar_desde_smartsheet()
     df = df.fillna("")
         client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
         sheet = client.Sheets.get_sheet(SHEET_ID)
@@ -623,6 +623,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
