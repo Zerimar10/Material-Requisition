@@ -362,7 +362,7 @@ with tab2:
         if pwd:
             if pwd == ALMACEN_PASSWORD:
                 st.session_state.almacen_autenticando = True
-                st.experimental_rerun()
+                st.rerun()
                 
             else:
                 st.warning("🚫 Acceso restringido.")
@@ -518,4 +518,5 @@ with tab2:
                 st.write(e)
                 st.error("❌ Error al guardar cambios.")
                 st.write(e)
+
 
