@@ -307,9 +307,8 @@ with tab1:
             add_cell("minuto_final", "")
             
             # Enviar la fila
-            response = client.Sheets.add_rows(SHEET_ID, [new_row])
-            st.write("Respuesta de Smartsheet:", response)
-
+            client.Sheets.add_rows(SHEET_ID, [new_row])
+            
         except Exception as e:
             st.error("❌ Error al enviar a Smartsheet.")
             st.write(e)
@@ -532,6 +531,7 @@ with tab2:
                 st.write(e)
                 st.error("❌ Error al guardar cambios.")
                 st.write(e)
+
 
 
 
