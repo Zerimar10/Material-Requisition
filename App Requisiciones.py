@@ -4,21 +4,6 @@ from datetime import datetime
 import time
 import smartsheet
 
-if st.sidebar.button("Obtener Column IDs"):
-    try:
-        token = st.secrets["SMARTSHEET_TOKEN"]
-        sheet_id = st.secrets["SHEET_ID"]
-
-        client = smartsheet.Smartsheet(token)
-        sheet = client.Sheets.get_sheet(sheet_id)
-
-        st.write("### Column IDs encontrados:")
-        for col in sheet.columns:
-            st.write(f"{col.title} → {col.id}")
-
-    except Exception as e:
-        st.error(f"Error: {e}")
-
 ALMACEN_PASSWORD = st.secrets["ALMACEN_PASSWORD"]
 
 # ============================================================
@@ -301,20 +286,65 @@ with tab1:
             new_row = smartsheet.models.Row()
             new_row.to_top = True
 
-            new_row.cells = [
-                {"column_id": COL_ID["ID"], "value": nueva_fila["ID"]},
-                {"column_id": COL_ID["fecha_hora"], "value": nueva_fila["fecha_hora"]},
-                {"column_id": COL_ID["cuarto"], "value": nueva_fila["cuarto"]},
-                {"column_id": COL_ID["work_order"], "value": nueva_fila["work_order"]},
-                {"column_id": COL_ID["numero_parte"], "value": nueva_fila["numero_parte"]},
-                {"column_id": COL_ID["numero_lote"], "value": nueva_fila["numero_lote"]},
-                {"column_id": COL_ID["cantidad"], "value": nueva_fila["cantidad"]},
-                {"column_id": COL_ID["motivo"], "value": nueva_fila["motivo"]},
-                {"column_id": COL_ID["status"], "value": nueva_fila["status"]},
-                {"column_id": COL_ID["almacenista"], "value": ""},
-                {"column_id": COL_ID["issue"], "value": False},
-                {"column_id": COL_ID["minuto_final"], "value": None},
-            ]
+            new_row.cells.append(smartsheet.models.Cell(
+                column_id = COL_ID["ID"],
+                value = nueva_fila["ID"]
+            ))
+
+            new_row.cells.append(smartsheet.models.Cell(
+                column_id = COL_ID["fecha_hora"],
+                value = nueva_fila["fecha_hora"]
+            ))
+
+            new_row.cells.append(smartsheet.models.Cell(
+                column_id = COL_ID["cuarto"],
+                value = nueva_fila["cuarto"]
+            ))
+
+            new_row.cells.append(smartsheet.models.Cell(
+                column_id = COL_ID["work_order"],
+                value = nueva_fila["work_order"]
+            ))
+
+            new_row.cells.append(smartsheet.models.Cell(
+                column_id = COL_ID["numero_parte"],
+                value = nueva_fila["numero_parte"]
+            ))
+
+            new_row.cells.append(smartsheet.models.Cell(
+                column_id = COL_ID["numero_lote"],
+                value = nueva_fila["numero_lote"]
+            ))
+
+            new_row.cells.append(smartsheet.models.Cell(
+                column_id = COL_ID["cantidad"],
+                value = nueva_fila["cantidad"]
+            ))
+
+            new_row.cells.append(smartsheet.models.Cell(
+                column_id = COL_ID["motivo"],
+                value = nueva_fila["motivo"]
+            ))
+
+            new_row.cells.append(smartsheet.models.Cell(
+                column_id = COL_ID["status"],
+                value = nueva_fila["status"]
+            ))
+
+            new_row.cells.append(smartsheet.models.Cell(
+                column_id = COL_ID["almacenista"],
+                value = "" # vacío al inicio
+            ))
+
+            new_row.cells.append(smartsheet.models.Cell(
+                column_id = COL_ID["issue"],
+                value = False
+            ))
+
+            new_row.cells.append(smartsheet.models.Cell(
+                column_id = COL_ID["minuto_final"],
+                value = None
+            ))
 
             client.Sheets.add_rows(SHEET_ID, [new_row])
 
@@ -525,6 +555,7 @@ with tab2:
                 st.write(e)
                 st.error("❌ Error al guardar cambios.")
                 st.write(e)
+
 
 
 
