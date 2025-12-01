@@ -549,49 +549,50 @@ with tab2:
 
             fila = df[df["ID"] == id_editar].iloc[0]
 
-            # Campos editables
-            nuevo_status = st.selectbox(
-                "Nuevo status:",
-                ["Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"],
-                index=["Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"].index(fila["status"])
-            )
+        # Campos editables
+        nuevo_status = st.selectbox(
+              "Nuevo status:",
+              ["Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"],
+              index=["Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"].index(fila["status"])
+           )
 
-            nuevo_almacenista = st.text_input("Almacenista:", fila["almacenista"])
+        nuevo_almacenista = st.text_input("Almacenista:", fila["almacenista"])
 
-            nuevo_issue = st.checkbox("Issue", value=(fila["issue"] == True))
+        nuevo_issue = st.checkbox("Issue", value=(fila["issue"] == True))
 
-            # Botón para guardar cambios
-            if st.button("Guardar cambios"):
+           # Botón para guardar cambios
+           if st.button("Guardar cambios"):
 
-                try:
-                    client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
+              try:
+                client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
 
-                    # row_id real desde Smartsheet (lo obtienes en cargar_desde_smartsheet)
-                    row_id = int(fila["row_id"])
+                # row_id real desde Smartsheet (lo obtienes en cargar_desde_smartsheet)
+                row_id = int(fila["row_id"])
 
-                    # Crear fila para actualización
-                    update_row = smartsheet.models.Row()
-                    update_row.id = row_id
-                    update_row.cells = [
-                        {"column_id": COL_ID["status"], "value": nuevo_status},
-                        {"column_id": COL_ID["almacenista"], "value": nuevo_almacenista},
-                        {"column_id": COL_ID["issue"], "value": nuevo_issue},
-                    ]
+                # Crear fila para actualización
+                update_row = smartsheet.models.Row()
+                update_row.id = row_id
+                  update_row.cells = [
+                       {"column_id": COL_ID["status"], "value": nuevo_status},
+                       {"column_id": COL_ID["almacenista"], "value": nuevo_almacenista},
+                       {"column_id": COL_ID["issue"], "value": nuevo_issue},
+                   ]
 
-                    # Enviar actualización
-                    client.Sheets.update_rows(SHEET_ID, [update_row])
+                # Enviar actualización
+                client.Sheets.update_rows(SHEET_ID, [update_row])
 
-                    st.success("Cambios guardados correctamente.")
+                  st.success("Cambios guardados correctamente.")
 
-                    # Ocultar formulario después de guardar
-                    st.session_state.mostrar_edicion = False
+                  # Ocultar formulario después de guardar
+                  st.session_state.mostrar_edicion = False
 
-                    # Recargar vista
-                    st.rerun()
+                   # Recargar vista
+                   st.rerun()
 
-                except Exception as e:
-                    st.error("❌ Error al guardar cambios en Smartsheet.")
-                    st.write(e)    
+              except Exception as e:
+                  st.error("❌ Error al guardar cambios en Smartsheet.")
+                  st.write(e)    
+
 
 
 
