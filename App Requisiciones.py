@@ -304,7 +304,7 @@ with tab1:
             add_cell("status", nueva_fila["status"])
             add_cell("almacenista", "")
             add_cell("issue", False)
-            add_cell("minuto_final", None)
+            add_cell("minuto_final", "")
             
             # Enviar la fila
             response = client.Sheets.add_rows(SHEET_ID, [new_row])
@@ -532,6 +532,7 @@ with tab2:
                 st.write(e)
                 st.error("❌ Error al guardar cambios.")
                 st.write(e)
+
 
 
 
