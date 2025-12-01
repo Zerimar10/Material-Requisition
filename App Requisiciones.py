@@ -64,6 +64,34 @@ def cargar_desde_smartsheet():
 
     return df
 
+# ============================================================
+# FUNCIÓN → GENERAR ID CONSECUTIVO DESDE SMARTSHEET
+# ============================================================
+
+def generar_id_desde_smartsheet():
+    client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
+    sheet = client.Sheets.get_sheet(SHEET_ID)
+
+    ids = []
+
+    for row in sheet.rows:
+        for cell in row.cells:
+            if cell.column_id == COL_ID["ID"]:
+                val = str(cell.value) if cell.value is not None else ""
+                if val.startswith("REQ-"):
+                    try:
+                        num = int(val.replace("REQ-", ""))
+                        ids.append(num)
+                    except:
+                        pass
+
+    # Si no hay ningún ID todavía
+    if not ids:
+        return "REQ-0001"
+
+    nuevo_num = max(ids) + 1
+    return f"REQ-{nuevo_num:04d}"
+
 st.set_page_config(page_title="Sistema de Requisiciones", layout="wide")
 
 # =============================
@@ -261,7 +289,7 @@ with tab1:
     if st.session_state.guardando:
 
         # Generar ID único
-        ID = f"REQ-{int(datetime.now().timestamp())}"
+        ID = generar_id_desde_smartsheet()
 
         nueva_fila = {
             "ID": ID,
@@ -531,6 +559,7 @@ with tab2:
                 st.write(e)
                 st.error("❌ Error al guardar cambios.")
                 st.write(e)
+
 
 
 
