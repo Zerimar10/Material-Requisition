@@ -304,9 +304,13 @@ with tab1:
         # Generar ID único
         ID = generar_id_desde_smartsheet()
 
+        # Calcular hora local (UTC-6)
+        from datetime import datetime, timedelta
+        hora_local = datetime.utcnow() - timedelta(hours=6)
+
         nueva_fila = {
             "ID": ID,
-            "fecha_hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "fecha_hora": hora_local.strftime("%Y-%m-%d %H:%M:%S"),
             "cuarto": st.session_state.form_cuarto,
             "work_order": st.session_state.form_work,
             "numero_parte": st.session_state.form_parte,
@@ -415,7 +419,7 @@ with tab2:
     # ============================================================
 
     # Convertir fecha a datetime
-    df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"], errors="coerce")
+    df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"], errors="coerce") - pd.Timedelta(hours=6)
 
     df["cantidad"] = pd.to_numeric(df["cantidad"], errors="coerce").fillna(0).astype(int)
 
@@ -577,5 +581,6 @@ with tab2:
             except Exception as e:
                 st.error("❌ Error al guardar cambios en Smartsheet.")
                 st.write(e)    
+
 
 
