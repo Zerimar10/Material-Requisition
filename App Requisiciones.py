@@ -516,80 +516,64 @@ with tab2:
 
     st.markdown("<div class='subtitulo-seccion'>Editar requisición</div>", unsafe_allow_html=True)
 
-    lista_ids = df["ID"].tolist()
-    id_editar = st.selectbox("Seleccione ID a editar:", lista_ids)
+    # Variable de control para mostrar/ocultar formulario
+    if "mostrar_edicion" not in st.session_state:
+        st.session_state.mostrar_edicion = False
 
-    if id_editar:
+    # Botón para activar / desactivar el formulario
+    if st.button("✏️ Editar una requisición"):
+        st.session_state.mostrar_edicion = not st.session_state.mostrar_edicion
 
-        row_edit = df[df["ID"] == id_editar].iloc[0]
-        idx = df[df["ID"] == id_editar].index[0]
+    # Si el usuario activó el modo edición → mostrar formulario
+    if st.session_state.mostrar_edicion:
 
-        nuevo_status = st.selectbox("Nuevo status:", df["status"].unique(), index=list(df["status"].unique()).index(row_edit["status"]))
-        nuevo_almacenista = st.text_input("Almacenista:", value=row_edit["almacenista"])
-        nuevo_issue = st.checkbox("Issue", value=row_edit["issue"])
+        # Lista de IDs existentes
+        lista_ids = df["ID"].unique().tolist()
+        id_editar = st.selectbox("Seleccione ID a editar:", lista_ids)
 
+        # Obtener la fila correspondiente
+        fila = df[df["ID"] == id_editar].iloc[0]
+
+        # Campos editables
+        nuevo_status = st.selectbox(
+            "Nuevo status:",
+            ["Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"],
+            index=["Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"].index(fila["status"])
+        )
+
+        nuevo_almacenista = st.text_input("Almacenista:", fila["almacenista"])
+
+        nuevo_issue = st.checkbox("Issue", value=(fila["issue"] == True))
+
+        # Botón para guardar cambios
         if st.button("Guardar cambios"):
 
-            # Congelar minutos si llega a un estado final
-            min_final_val = row_edit["minutos"] if nuevo_status in estados_finales else None
-
-            # Actualizar en Smartsheet
             try:
                 client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
 
+                # row_id real desde Smartsheet (lo obtienes en cargar_desde_smartsheet)
+                row_id = int(fila["row_id"])
+
+                # Crear fila para actualización
                 update_row = smartsheet.models.Row()
-                update_row.id = row_edit["row_id"]
+                update_row.id = row_id
+                update_row.cells = [
+                    {"column_id": COL_ID["status"], "value": nuevo_status},
+                    {"column_id": COL_ID["almacenista"], "value": nuevo_almacenista},
+                    {"column_id": COL_ID["issue"], "value": nuevo_issue},
+                ]
 
-                update_row.cells = []
-
-                update_row.cells.append(smartsheet.models.Cell(
-                    column_id=COL_ID["status"],
-                    value=nuevo_status
-                ))
-
-                update_row.cells.append(smartsheet.models.Cell(
-                    column_id=COL_ID["almacenista"],
-                    value=nuevo_almacenista
-                ))
-
-                update_row.cells.append(smartsheet.models.Cell(
-                    column_id=COL_ID["issue"],
-                    value=nuevo_issue
-                ))
-
-                update_row.cells.append(smartsheet.models.Cell(
-                    column_id=COL_ID["minuto_final"],
-                    value=min_final_val
-                ))
-
+                # Enviar actualización
                 client.Sheets.update_rows(SHEET_ID, [update_row])
 
                 st.success("Cambios guardados correctamente.")
-                st.experimental_rerun()
+
+                # Ocultar formulario después de guardar
+                st.session_state.mostrar_edicion = False
+
+                # Recargar vista
+                st.rerun()
 
             except Exception as e:
-                st.error("❌ Error al guardar cambios.")
-                st.write(e)
-                st.error("❌ Error al guardar cambios.")
-                st.write(e)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                st.error("❌ Error al guardar cambios en Smartsheet.")
+                st.write(e)    
