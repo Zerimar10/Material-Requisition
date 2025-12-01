@@ -391,7 +391,7 @@ with tab2:
     # ============================================================
 
     # 1) Convertir fecha
-    df["fecha_hora"] = pd.to_datetime(df["fecha_hora"], errors="coerce")
+    df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"], errors="coerce")
 
     # 2) Normalizar columna minuto_final
     if "minuto_final" not in df.columns:
@@ -622,6 +622,7 @@ with tab2:
             mime="text/csv",
             use_container_width=True
         )
+
 
 
 
