@@ -421,7 +421,7 @@ with tab2:
     # Convertir fecha a datetime
     df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"], errors="coerce")
 
-    st.write("DEBUG fecha_hora recibido:",df[["fecha_hora","fecha_hora_dt]].head(10))
+    st.write("DEBUG fecha_hora recibido:",df[["fecha_hora", "fecha_hora_dt]].head(10))
 
     df["fecha_hora_dt"] = df["fecha_hora_dt"] - pd.Timedelta(hours=7)
 
@@ -596,6 +596,7 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
 
 
