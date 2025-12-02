@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import smartsheet
 import re
@@ -435,27 +435,33 @@ with tab2:
         df["min_final"] = None
     else:
         df["min_final"] = df["min_final"].apply(
-            lambda x: int(x) if pd.notna(x) and str(x).isdigit() else None
+            lambda x: None
+            if str(x).strip().lower() in ["none", "", "nan"]
+            else int(float(x))
         )
 
     # Función para calcular minutos con congelamiento
     def calcular_minutos(row):
-        from datetime import datetime, timedelta
 
         # Si fecha inválida → 0
         if pd.isna(row["fecha_hora_dt"]):
             return 0
 
-        # Calcular hora local (UTC -7)
-        ahora = datetime.utcnow() - timedelta(hours=7)
-
         # Si ya está congelado
-        if row["min_final"] is not None:
+        if row.get("min_final") is not None:
             try:
                 return int(row["min_final"])
             except:
                 pass
 
+        ahora_local = datetime.utcnow() - timedelta(hours=7)
+        diff_min = (ahora_local - row["fecha_hora_dt"]).total_seconds() / 60
+
+        if diff_min < 0:
+            diff_min = 0
+
+        return int(diff_min)
+        
         # Si status es final → congelar solo una vez
         if row["status"] in ["Entregado", "Cancelado", "No encontrado", "En proceso"]:
             diff = (ahora - row["fecha_hora_dt"]).total_seconds() / 60
@@ -600,6 +606,7 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
 
 
