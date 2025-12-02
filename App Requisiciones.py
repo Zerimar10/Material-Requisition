@@ -418,6 +418,11 @@ with tab2:
     # CALCULAR MINUTOS + CONGELAMIENTO
     # ============================================================
 
+    df["min_final"] = df["min_final"].apply(lambda x: None
+                                            if str(x).strip().lower() in ["none", "","nan"]
+                                            else int(float(x))
+    )
+    
     # Convertir fecha a datetime
     df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"], errors="coerce")
 
@@ -592,4 +597,5 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
