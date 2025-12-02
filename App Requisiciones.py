@@ -440,10 +440,14 @@ with tab2:
 
     # Función para calcular minutos con congelamiento
     def calcular_minutos(row):
+        from datetime import datetime, timedelta
 
         # Si fecha inválida → 0
         if pd.isna(row["fecha_hora_dt"]):
             return 0
+
+        # Calcular hora local (UTC -7)
+        ahora = datetime.utcnow() - timedelta(hours=7)
 
         # Si ya está congelado
         if row["min_final"] is not None:
@@ -453,12 +457,12 @@ with tab2:
                 pass
 
         # Si status es final → congelar solo una vez
-        if row["status"] in estados_finales:
-            diff = (datetime.now() - row["fecha_hora_dt"]).total_seconds() // 60
+        if row["status"] in ["Entregado", "Cancelado", "No encontrado", "En proceso"]:
+            diff = (ahora - row["fecha_hora_dt"]).total_seconds() / 60
             return int(diff)
 
         # Caso normal
-        diff = (datetime.now() - row["fecha_hora_dt"]).total_seconds() // 60
+        diff = (ahora - ["fecha_hora_dt"]).total_seconds() // 60
         return int(diff)
 
     df["minutos"] = df.apply(calcular_minutos, axis=1)
@@ -596,6 +600,7 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
 
 
