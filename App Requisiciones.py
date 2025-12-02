@@ -306,7 +306,7 @@ with tab1:
 
         # Calcular hora local (UTC-6)
         from datetime import datetime, timedelta
-        hora_local = datetime.utcnow() - timedelta(hours=7)
+        hora_local = datetime.utcnow()
 
         nueva_fila = {
             "ID": ID,
@@ -596,6 +596,7 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
 
 
