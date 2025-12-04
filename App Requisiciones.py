@@ -579,43 +579,6 @@ with tab2:
     # Mostrar tabla
     tabla_container.dataframe(df_visible, hide_index=True, use_container_width=True)
 
-    # --- Mantener posición de scroll aunque haya refresh ---
-    st.markdown("""
-    <script>
-
-    let lastScroll = sessionStorage.getItem("scrollPos") || 0;
-
-    // Guardar scroll continuamente
-    window.addEventListener("scroll", function(){
-        sessionStorage.setItem("scrollPos", window.scrollY);
-    });
-
-    // Función para restaurar el scroll varias veces
-    function restoreScroll(){
-        let y = sessionStorage.getItem("scrollPos");
-        if (y !== null){
-            window.scrollTo(0, parseInt(y));
-        }
-    }
-
-    // Usar MutationObserver para detectar cuando Streamlit redibuja
-    const observer = new MutationObserver((mutations) => {
-        setTimeout(restoreScroll, 50);
-        setTimeout(restoreScroll, 150);
-        setTimeout(restoreScroll, 300);
-        setTimeout(restoreScroll, 600);
-    });
-
-    // Observar cambios en toda la app
-    observer.observe(document.body, {childList: true, subtree: true});
-
-    // Restaurar scroll también al terminar de cargar
-    window.addEventListener("load", restoreScroll);
-
-    </script>
-    """, unsafe_allow_html=True)
-
-
     # -------------------------------------------
     # EDITAR REQUISICIÓN
     # -------------------------------------------
@@ -714,6 +677,43 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
+# --- Mantener posición de scroll aunque haya refresh ---
+st.markdown("""
+<script>
+
+let lastScroll = sessionStorage.getItem("scrollPos") || 0;
+
+// Guardar scroll continuamente
+window.addEventListener("scroll", function(){
+    sessionStorage.setItem("scrollPos", window.scrollY);
+});
+
+// Función para restaurar el scroll varias veces
+function restoreScroll(){
+    let y = sessionStorage.getItem("scrollPos");
+    if (y !== null){
+        window.scrollTo(0, parseInt(y));
+    }
+}
+
+// Usar MutationObserver para detectar cuando Streamlit redibuja
+const observer = new MutationObserver((mutations) => {
+    setTimeout(restoreScroll, 50);
+    setTimeout(restoreScroll, 150);
+    setTimeout(restoreScroll, 300);
+    setTimeout(restoreScroll, 600);
+});
+
+// Observar cambios en toda la app
+observer.observe(document.body, {childList: true, subtree: true});
+
+// Restaurar scroll también al terminar de cargar
+window.addEventListener("load", restoreScroll);
+
+</script>
+""", unsafe_allow_html=True)
+
 
 
 
