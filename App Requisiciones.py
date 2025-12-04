@@ -557,15 +557,6 @@ with tab2:
 
     # Columnas internas que no deben verse
     columnas_ocultas = ["fecha_hora_dt","min_final", "row_id"]
-    
-    # Aplicar filtros al dataframe original
-    df_filtrado = df.copy()
-
-    if filtro_cuarto:
-        df_filtrado = df_filtrado[df_filtrado["cuarto"].isin(filtro_cuarto)]
-
-    if filtro_status:
-        df_filtrado = df_filtrado[df_filtrado["status"].isin(filtro_status)]
 
     # Ocultar columnas internas DESPUÉS de filtrar
     df_visible = df_filtrado.drop(columns=columnas_ocultas, errors="ignore")
@@ -640,6 +631,7 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
 
 
