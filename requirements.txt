@@ -1,3 +1,4 @@
 pandas
 smartsheet-python-sdk
 streamlit
+streamlit-autorefresh
