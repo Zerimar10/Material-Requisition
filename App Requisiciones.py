@@ -560,7 +560,7 @@ with tab2:
     #Cada ejecución aumenta el contador
     st.session_state.refresh_table += 1
 
-    if st.session_state.refresh_table % 15 == o:
+    if st.session_state.refresh_table % 15 == 0:
         st.experimental_rerun()
     
     st.markdown("<div class='subtitulo-seccion'>Requisiciones registradas</div>", unsafe_allow_html=True)
@@ -680,6 +680,7 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
 
 
