@@ -414,7 +414,7 @@ with tab2:
     # Ahora carga el panel normalmente
     df = cargar_desde_smartsheet().fillna("")
 
-    if "min_final" not in df.columns: df["min_final"] = ""
+    if "min_final" not in df.columns: df["min_final"] = None
 
     # ============================================================
     # CALCULAR MINUTOS + CONGELAMIENTO
@@ -472,6 +472,13 @@ with tab2:
 
     # Ordenar por fecha desc
     df = df.sort_values(by="fecha_hora_dt", ascending=False)
+
+    columnas_internas = ["min_final", "row_id", "fecha_hora_dt"]
+
+    df = df.copy()
+    for col in columnas_internas:
+        if col in df.columns:
+            df[col] = df[col]
 
     # -------------------------------------------
     # FILTROS
@@ -656,6 +663,7 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
 
 
