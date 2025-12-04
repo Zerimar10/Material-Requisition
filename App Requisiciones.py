@@ -483,7 +483,7 @@ with tab2:
     # FILTROS
     # -------------------------------------------
 
-    # Inicializar estado si no existe
+    # 1) Inicializar estado de filtros
     if "filtro_cuarto" not in st.session_state:
         st.session_state.filtro_cuarto = []
 
@@ -491,50 +491,63 @@ with tab2:
         st.session_state.filtro_status = []
 
     if "filtro_issue" not in st.session_state:
+        # Por defecto: mostrar todos (opción lógica, no filtro)
         st.session_state.filtro_issue = ["Todos"]
 
-    # --- Controles visuales ---
-    colA, colB, colC = st.columns(3)
+    # Opciones del filtro de issue
+    opciones_issue = ["Todos", "Sí", "No"]
 
-    opciones_issue = ["True", "False"]
+    # 2) Controles visuales
+    colA, colB, colC = st.columns(3)
 
     with colA:
         st.session_state.filtro_cuarto = st.multiselect(
             "Filtrar por cuarto",
             df["cuarto"].unique(),
-            default=st.session_state.filtro_cuarto
+            default=st.session_state.filtro_cuarto,
         )
 
     with colB:
         st.session_state.filtro_status = st.multiselect(
             "Filtrar por status",
             df["status"].unique(),
-            default=st.session_state.filtro_status
+            default=st.session_state.filtro_status,
         )
 
     with colC:
         st.session_state.filtro_issue = st.multiselect(
             "Filtrar por issue",
             opciones_issue,
-            default=st.session_state.filtro_issue
+            default=st.session_state.filtro_issue,
         )
 
-    # --- Aplicar filtros ---
+    # 3) Aplicar filtros
     df_filtrado = df.copy()
 
     # Filtrar por cuarto
     if st.session_state.filtro_cuarto:
-        df_filtrado = df_filtrado[df_filtrado["cuarto"].isin(st.session_state.filtro_cuarto)]
+        df_filtrado = df_filtrado[
+            df_filtrado["cuarto"].isin(st.session_state.filtro_cuarto)
+        ]
 
     # Filtrar por status
     if st.session_state.filtro_status:
-        df_filtrado = df_filtrado[df_filtrado["status"].isin(st.session_state.filtro_status)]
+        df_filtrado = df_filtrado[
+            df_filtrado["status"].isin(st.session_state.filtro_status)
+        ]
 
     # Filtrar por issue
-    if st.session_state.filtro_issue and st.session_state.filtro_issue != ["Todos"]:
-        df_filtrado = df_filtrado[df_filtrado["issue"].isin(
-            [True if x == "Sí" else False for x in st.session_state.filtro_issue]
-        )]
+    f_issue = st.session_state.filtro_issue
+
+    # Si incluye "Todos" --> no filtramos nada por issue
+    if "Todos" not in f_issue:
+        # Sólo "Sí"
+        if "Sí" in f_issue and "No" not in f_issue:
+            df_filtrado = df_filtrado[df_filtrado["issue"] == True]
+        # Sólo "No"
+        elif "No" in f_issue and "Sí" not in f_issue:
+            df_filtrado = df_filtrado[df_filtrado["issue"] == False]
+        # Si marca "Sí" y "No" sin "Todos" -> equivale a mostrar todo, no se aplica filtro extra
     
     # -------------------------------------------
     # TABLA PRINCIPAL
@@ -627,6 +640,7 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
 
 
