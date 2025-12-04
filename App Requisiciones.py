@@ -553,8 +553,19 @@ with tab2:
     # -------------------------------------------
     # TABLA PRINCIPAL
     # -------------------------------------------
+    #Contador de refresco automático de la tabla
+    if "refresh_table" not in st.session_state:
+        st.session_state.refresh_table = 0
+        
+    #Cada ejecución aumenta el contador
+    st.session_state.refresh_table += 1
 
+    if st.session_state.refresh_table % 15 == o:
+        st.experimental_rerun()
+    
     st.markdown("<div class='subtitulo-seccion'>Requisiciones registradas</div>", unsafe_allow_html=True)
+
+    tabla_container = st.empty()
 
     # Columnas internas que no deben verse
     columnas_ocultas = ["fecha_hora_dt","min_final", "row_id"]
@@ -569,7 +580,7 @@ with tab2:
     df_visible = df_filtrado.drop(columns=columnas_ocultas, errors="ignore")
 
     # Mostrar tabla
-    st.dataframe(df_visible, hide_index=True, use_container_width=True)
+    tabla_container.dataframe(df_visible, hide_index=True, use_container_width=True)
 
     # -------------------------------------------
     # EDITAR REQUISICIÓN
@@ -669,6 +680,7 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
 
 
