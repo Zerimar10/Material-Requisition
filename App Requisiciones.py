@@ -560,7 +560,7 @@ with tab2:
     columnas_ocultas = ["fecha_hora_dt","min_final", "row_id"]
 
     # Convertir min_final a entero para evitar decimales
-    df_filtrado["min_final"] = pd.to_numeric(df_filtrado["min_final"], errors="coerce").fillna("").astype("Int64")
+    df_visible["min_final"] = df_visible["min_final"].astype("Int64").astype("string").fillna("")
 
     # Ocultar columnas internas DESPUÉS de filtrar
     df_visible = df_filtrado.drop(columns=columnas_ocultas, errors="ignore")
@@ -666,6 +666,7 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
 
 
