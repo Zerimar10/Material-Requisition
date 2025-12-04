@@ -592,6 +592,8 @@ with tab2:
     # -------------------------------------------
     # TABLA PRINCIPAL
     # -------------------------------------------
+
+    st.markdown('<a id="tabla_reg"></a>', unsafe_allow_html=True)
        
     st.markdown("<div class='subtitulo-seccion'>Requisiciones registradas</div>", unsafe_allow_html=True)
 
@@ -710,6 +712,7 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
 
 
