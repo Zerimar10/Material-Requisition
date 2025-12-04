@@ -496,6 +496,8 @@ with tab2:
     # --- Controles visuales ---
     colA, colB, colC = st.columns(3)
 
+    opciones_issue = ["Si", "No"]
+
     with colA:
         st.session_state.filtro_cuarto = st.multiselect(
             "Filtrar por cuarto",
@@ -625,6 +627,7 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
 
 
