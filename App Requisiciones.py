@@ -602,16 +602,51 @@ with tab2:
                     # Obtener row_id real
                     row_id = int(fila["row_id"])
 
-                    # Crear la fila para actualización
+                    # ---------------------------------
+                    # LÓGICA DE CONGELAR MINUTOS
+                    # ---------------------------------
+                    nuevo_min_final = None
+
+                    # Si el nuevo status es FINAL → queremos congelar
+                    if nuevo_status in estados_finales:
+                        # 1) Si ya estaba congelado, lo respetamos
+                        valor_actual = fila.get("min_final", None)
+                        if pd.notna(valor_actual) and str(valor_actual).strip().lower() not in ["", "none", "nan"]:
+                            try:
+                                nuevo_min_final = int(valor_actual)
+                            except:
+                                nuevo_min_final = None
+                        else:
+                            # 2) Si no estaba congelado, usamos los minutos calculados ahora
+                            minutos_actuales = fila.get("minutos", None)
+                            try:
+                                nuevo_min_final = int(minutos_actuales)
+                            except:
+                                nuevo_min_final = None
+                    else:
+                        # Si el status NO es final, limpiamos min_final para que siga contando
+                        nuevo_min_final = ""
+
+                    # ---------------------------------
+                    # Construir la fila a actualizar
+                    # ---------------------------------
                     update_row = smartsheet.models.Row()
                     update_row.id = row_id
+        
                     update_row.cells = [
                         {"column_id": COL_ID["status"], "value": nuevo_status},
                         {"column_id": COL_ID["almacenista"], "value": nuevo_almacenista},
                         {"column_id": COL_ID["issue"], "value": nuevo_issue},
                     ]
 
-                    # Enviar actualización
+                    # Añadir min_final siempre (vacío o con valor) para mantener coherencia
+                    update_cells.append(
+                        {"column_id": COL_ID["minuto_final"], "value": nuevo_min_final}
+                    )
+
+                    update_row.cells = update_cells
+
+                    # Enviar actualización a Smartsheet
                     client.Sheets.update_rows(SHEET_ID, [update_row])
 
                     st.success("Cambios guardados correctamente.")
@@ -625,22 +660,5 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
