@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import time
 import smartsheet
 import re
+from streamlit_autorefresh import st_autorefresh
 
 ALMACEN_PASSWORD = st.secrets["ALMACEN_PASSWORD"]
 
@@ -403,6 +404,9 @@ with tab2:
     # ---------------------------------------
     st.success("🔓 Acceso concedido.")
 
+    # 🔄 Auto-refresco cada 15 segundos mientras este tab esté abierto
+    st_autorefresh(interval=15_000, key="auto_refresh_almacen")
+
     # Ocultar el input una vez autenticado (lo elimina del DOM)
     st.markdown("""
     <style>
@@ -553,16 +557,7 @@ with tab2:
     # -------------------------------------------
     # TABLA PRINCIPAL
     # -------------------------------------------
-    #Contador de refresco automático de la tabla
-    if "refresh_table" not in st.session_state:
-        st.session_state.refresh_table = 0
-        
-    #Cada ejecución aumenta el contador
-    st.session_state.refresh_table += 1
-
-    if st.session_state.refresh_table % 15 == 0:
-        st.experimental_rerun()
-    
+       
     st.markdown("<div class='subtitulo-seccion'>Requisiciones registradas</div>", unsafe_allow_html=True)
 
     tabla_container = st.empty()
@@ -680,6 +675,7 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
 
 
