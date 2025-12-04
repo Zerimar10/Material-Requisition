@@ -407,6 +407,24 @@ with tab2:
     # 🔄 Auto-refresco cada 15 segundos mientras este tab esté abierto
     st_autorefresh(interval=15_000, key="auto_refresh_almacen")
 
+    # --- Mantener posición de scroll aunque haya refresh ---
+    st.markdown("""
+    <script>
+        // Guardar scroll antes del refresh
+        window.addEventListener('beforeunload', function () {
+            sessionStorage.setItem('scrollPos', window.scrollY);
+        });
+
+        // Restaurar scroll después del refresh
+        document.addEventListener('DOMContentLoaded', function () {
+            var scrollPos = sessionStorage.getItem('scrollPos');
+            if (scrollPos !== null) {
+                window.scrollTo(0, parseInt(scrollPos));
+            }
+        });
+    </script>
+    """, unsafe_allow_html=True)
+
     # Ocultar el input una vez autenticado (lo elimina del DOM)
     st.markdown("""
     <style>
@@ -675,6 +693,7 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
 
 
