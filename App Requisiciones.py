@@ -304,9 +304,9 @@ with tab1:
         # Generar ID único
         ID = generar_id_desde_smartsheet()
 
-        # Calcular hora local (UTC-6)
+        # Calcular hora local (UTC-7)
         from datetime import datetime, timedelta
-        hora_local = datetime.utcnow()
+        hora_local = datetime.utcnow() - timedelta(hours=7)
 
         nueva_fila = {
             "ID": ID,
@@ -599,6 +599,7 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
 
 
