@@ -409,36 +409,15 @@ with tab2:
 
     # --- Mantener posición de scroll aunque haya refresh ---
     st.markdown("""
+    <a id="tabla_reg"></a>
     <script>
-    // Guardar scroll en cada movimiento
-    document.addEventListener('scroll', function () {
-        sessionStorage.setItem('scrollPos', window.scrollY);
-    });
-
-    // Función que intenta restaurar el scroll varias veces
-    function forceRestoreScroll() {
-        const saved = sessionStorage.getItem('scrollPos');
-        if (saved !== null) {
-            window.scrollTo(0, parseInt(saved));
-        }
-    }
-
-    // Detectar cuando Streamlit actualiza contenido
-    const observer = new MutationObserver((mutations) => {
-        // Hacer varios intentos para asegurar que no se pierda el scroll
-        setTimeout(forceRestoreScroll, 10);
-        setTimeout(forceRestoreScroll, 50);
-        setTimeout(forceRestoreScroll, 120);
-        setTimeout(forceRestoreScroll, 250);
-        setTimeout(forceRestoreScroll, 400);
-    });
-
-    // Observar cambios en el body
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    // Forzar restauración al cargar
-    setTimeout(forceRestoreScroll, 50);
-    setTimeout(forceRestoreScroll, 200);
+        // Después de refrescar, esperar un momento y luego ir al anchor
+        setTimeout(function() {
+            var el = document.getElementById('tabla_reg');
+            if (el) {
+                el.scrollIntoView({behavior: 'instant', block: 'start'});
+            }
+        }, 300); // 300 ms de delay para permitir que Streamlit dibuje la tabla
     </script>
     """, unsafe_allow_html=True)
 
@@ -712,6 +691,7 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
 
 
