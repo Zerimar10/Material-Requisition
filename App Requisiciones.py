@@ -410,18 +410,29 @@ with tab2:
     # --- Mantener posición de scroll aunque haya refresh ---
     st.markdown("""
     <script>
-        // Guardar scroll continuamente mientras el usuario se mueve
-        document.addEventListener('scroll', function() {
-            sessionStorage.setItem('scrollPos', window.scrollY);
-        });
+    // Guardar scroll continuamente
+    document.addEventListener('scroll', function() {
+        sessionStorage.setItem('scrollPos', window.scrollY);
+    });
 
-        // Restaurar scroll después del refresh
-        document.addEventListener('DOMContentLoaded', function() {
-            var scrollPos = sessionStorage.getItem('scrollPos');
-            if (scrollPos !== null) {
-                window.scrollTo(0, parseInt(scrollPos));
-            }
-        });
+    // Restaurar scroll cuando Streamlit vuelva a dibujar elementos
+    function restoreScroll() {
+        const saved = sessionStorage.getItem('scrollPos');
+        if (saved !== null) {
+            window.scrollTo(0, parseInt(saved));
+        }
+    }
+
+    // Usar MutationObserver para detectar cuando Streamlit redibuja el DOM
+    const observer = new MutationObserver((mutations) => {
+        restoreScroll();
+    });
+
+    // Observar el body completo
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Restaurar scroll cuando el script carga
+    restoreScroll();
     </script>
     """, unsafe_allow_html=True)
 
@@ -693,6 +704,7 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
 
 
