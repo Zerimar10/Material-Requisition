@@ -630,10 +630,11 @@ with tab2:
                     # ---------------------------------
                     # Construir la fila a actualizar
                     # ---------------------------------       
-                    update_row.cells = [
+                    update_cells = [
                         {"column_id": COL_ID["status"], "value": nuevo_status},
                         {"column_id": COL_ID["almacenista"], "value": nuevo_almacenista},
                         {"column_id": COL_ID["issue"], "value": nuevo_issue},
+                        {"column_id": COL_ID["minuto_final"], "value": nuevo_min_final},
                     ]
 
                     #Crear objeto Row para Smartsheet
@@ -655,6 +656,7 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
 
 
