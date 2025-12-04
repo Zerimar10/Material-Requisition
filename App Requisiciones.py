@@ -410,13 +410,13 @@ with tab2:
     # --- Mantener posición de scroll aunque haya refresh ---
     st.markdown("""
     <script>
-        // Guardar scroll antes del refresh
-        window.addEventListener('beforeunload', function () {
+        // Guardar scroll continuamente mientras el usuario se mueve
+        document.addEventListener('scroll', function() {
             sessionStorage.setItem('scrollPos', window.scrollY);
         });
 
         // Restaurar scroll después del refresh
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             var scrollPos = sessionStorage.getItem('scrollPos');
             if (scrollPos !== null) {
                 window.scrollTo(0, parseInt(scrollPos));
@@ -693,6 +693,7 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
 
 
