@@ -420,50 +420,44 @@ with tab2:
     # CALCULAR MINUTOS + CONGELAMIENTO
     # ============================================================
 
-    # Normalizar min_final (texto → número o None)
+    # Normalizar columna min_final (None o número)
     df["min_final"] = df["min_final"].apply(
-        lambda x: None
-        if str(x).strip().lower() in ["none", "", "nan"]
-        else int(float(x))
+        lambda x: None if str(x).strip().lower() in ["", "none", "nan"] else int(float(x))
     )
 
-    # Convertir fecha a datetime (¡NO RESTAMOS HORAS!)
+    # Convertir fecha a datetime
     df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"], errors="coerce")
 
-    # Asegurar que cantidad sea número entero
-    df["cantidad"] = pd.to_numeric(df["cantidad"], errors="coerce").fillna(0).astype(int)
-
-    # Estados donde se congela el contador
+    # Estados donde los minutos deben congelarse
     estados_finales = ["Entregado", "Cancelado", "No encontrado"]
 
     from datetime import datetime, timedelta
 
-    # Función para calcular minutos con congelamiento
     def calcular_minutos(row):
-
-        # Si fecha inválida → 0 minutos
+        # Si la fecha no es válida → 0
         if pd.isna(row["fecha_hora_dt"]):
             return 0
 
-        # Si ya está congelado, usar valor guardado
+        # Si ya está congelado → regresar ese valor
         if row["min_final"] is not None:
             try:
                 return int(row["min_final"])
             except:
                 pass
 
-        # Si status es final → congelar minutos una sola vez
+        # Hora local correcta (UTC-7)
+        ahora = datetime.utcnow() - timedelta(hours=7)
+
+        # Si el status es final → congelar una sola vez
         if row["status"] in estados_finales:
-            ahora = datetime.utcnow() - timedelta(hours=7) # TU HORA LOCAL
             diff = (ahora - row["fecha_hora_dt"]).total_seconds() / 60
             return int(diff)
 
-        # Caso normal (no congelado)
-        ahora = datetime.utcnow() - timedelta(hours=7) # TU HORA LOCAL
+        # Caso normal (contador vivo)
         diff = (ahora - row["fecha_hora_dt"]).total_seconds() / 60
         return int(diff)
 
-    # Aplicar minutos calculados
+    # Aplicar cálculo
     df["minutos"] = df.apply(calcular_minutos, axis=1)
 
     # Semáforo
@@ -631,6 +625,7 @@ with tab2:
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
 
 
 
