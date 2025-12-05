@@ -572,7 +572,7 @@ with tab2:
         st.session_state.refresh_flag = False
 
     # Columnas internas que no deben verse
-    columnas_ocultas = ["fecha_hora_dt","min_final", "row_id"]
+    columnas_ocultas = ["fecha_hora_dt","min_final", "minuto_final", "row_id"]
 
     # Asegurar que min_final sea entero (sin decimales)
     df_filtrado["min_final"] = pd.to_numeric(
@@ -580,8 +580,9 @@ with tab2:
         errors="coerce"
     ).astype("Int64")
 
-    if "min_final" in df_filtrado.columns:
-        df_filtrado = df_filtrado.drop(columns=["min_final"])
+    for col in ["min_final, "minuto_final"]:
+                if col in df_filtrado.columns:
+                    df_filtrado = df_filtrado.drop(columns=[col])
 
     # Ocultar columnas internas DESPUÉS de filtrar y convertir
     df_visible = df_filtrado.drop(columns=columnas_ocultas, errors="ignore")
@@ -752,6 +753,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
