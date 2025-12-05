@@ -608,16 +608,16 @@ with tab2:
 
     st.markdown("""
     <style>
-    /* Selecciona el bloque con height=600 (el del formulario) y elimina su estilo */
-    div[style*="height: 600px"] {
-        background-color: transparent !important;
+    /* Elimina borde, fondo y sombra del bloque donde vive el container */
+    div[data-testid="stVerticalBlock"] div[style*="display: flex"] {
+        background: transparent !important;
         border: none !important;
         box-shadow: none !important;
     }
 
-    /* También limpia los div internos que hereden estilos */
-    div[style*="height: 600px"] > div {
-        background-color: transparent !important;
+    /* También borra estilos de wrappers interiores */
+    div[data-testid="stVerticalBlock"] div[style*="background-color"] {
+        background: transparent !important;
         border: none !important;
         box-shadow: none !important;
     }
@@ -749,6 +749,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
