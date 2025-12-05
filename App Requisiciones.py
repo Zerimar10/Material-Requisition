@@ -588,25 +588,40 @@ with tab2:
     else:
         tabla_container.dataframe(df_visible, hide_index=True, use_container_width=True)
 
-    # ---------------------------------------------------------
-    # FORMULARIO DE EDICIÓN (NO DEBE ESTAR ARRIBA DE LA TABLA)
-    # ---------------------------------------------------------
-    st.markdown("<div id='form_anchor'></div>", unsafe_allow_html=True)
+    # ----------------------------------------------
+    # FORMULARIO DE EDICIÓN (VERSIÓN FINAL)
+    # ----------------------------------------------
 
-    # Variable de control para mostrar/ocultar formulario
+    # Ancla para evitar que Streamlit suba al inicio
+    st.markdown("<a id='form_anchor'></a>", unsafe_allow_html=True)
+
+    # Variable que controla si se muestra o no el formulario
     if "mostrar_edicion" not in st.session_state:
         st.session_state.mostrar_edicion = False
 
+    # Botón para mostrar/ocultar formulario sin saltos
     if st.button("✏️ Editar una requisición"):
         st.session_state.mostrar_edicion = not st.session_state.mostrar_edicion
 
+    # Contenedor del formulario (solo se construye si está activo)
     form_container = st.container()
 
     if st.session_state.mostrar_edicion:
-        with form_container:
-        
-            st.markdown("<script>location.href='#form_anchor';</script>", unsafe_allow_html=True)
 
+        with form_container:
+
+            # Forzar scroll hacia el formulario sin brincar arriba
+            st.markdown("""
+            <script>
+                setTimeout(function() {
+                    document.getElementById('form_anchor').scrollIntoView({behavior: 'smooth'});
+                }, 150);
+            </script>
+            """, unsafe_allow_html=True)
+
+            # -----------------------
+            # Selección de ID a editar
+            # -----------------------
             lista_ids = df["ID"].unique().tolist()
             lista_ids_con_vacio = ["-- Seleccione --"] + lista_ids
 
@@ -615,110 +630,65 @@ with tab2:
             if id_editar != "-- Seleccione --":
                 fila = df[df["ID"] == id_editar].iloc[0]
 
+                # -----------------------
+                # Campos editables
+                # -----------------------
+
                 nuevo_status = st.selectbox(
                     "Nuevo status:",
-                    ["Pendiente","En proceso","Entregado","Cancelado","No encontrado"],
-                    index=["Pendiente","En proceso","Entregado","Cancelado","No encontrado"].index(fila["status"])
+                    ["Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"],
+                    index=["Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"].index(fila["status"])
                 )
 
                 nuevo_almacenista = st.text_input("Almacenista:", fila["almacenista"])
-                nuevo_issue = st.checkbox("Issue", value=(fila["issue"] == True))
+                nuevo_issue = st.checkbox("Issue", value=(fila["issue"] is True))
 
+                # -----------------------
+                # Guardar cambios
+                # -----------------------
                 if st.button("Guardar cambios"):
-                    # ... tu lógica para guardar
-                    pass
-    
-                try:
-                    client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
 
-                    # Obtener row_id real
-                    row_id = int(fila["row_id"])
+                    try:
+                        client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
+                        row_id = int(fila["row_id"])
 
-                    # ---------------------------------
-                    # LÓGICA DE CONGELAR MINUTOS
-                    # ---------------------------------
-                    nuevo_min_final = None
+                        # Determinar nuevo min_final
+                        estados_finales = ["Entregado", "Cancelado", "No encontrado"]
 
-                    # Si el nuevo status es FINAL → queremos congelar
-                    if nuevo_status in estados_finales:
-                        # 1) Si ya estaba congelado, lo respetamos
-                        valor_actual = fila.get("min_final", None)
-                        if pd.notna(valor_actual) and str(valor_actual).strip().lower() not in ["", "none", "nan"]:
-                            try:
-                                nuevo_min_final = int(valor_actual)
-                            except:
-                                nuevo_min_final = None
+                        if nuevo_status in estados_finales:
+                            # Si ya tenía un min_final válido → se respeta
+                            if pd.notna(fila["min_final"]) and str(fila["min_final"]).strip() not in ["None", "", "nan"]:
+                                nuevo_min_final = int(fila["min_final"])
+                            else:
+                                # Congelamos los minutos actuales
+                                nuevo_min_final = int(fila["minutos"])
                         else:
-                            # 2) Si no estaba congelado, usamos los minutos calculados ahora
-                            minutos_actuales = fila.get("minutos", None)
-                            try:
-                                nuevo_min_final = int(minutos_actuales)
-                            except:
-                                nuevo_min_final = None
-                    else:
-                        # Si el status NO es final, limpiamos min_final para que siga contando
-                        nuevo_min_final = ""
+                            # Si NO es final → se limpia
+                            nuevo_min_final = ""
 
-                    # ---------------------------------
-                    # Construir la fila a actualizar
-                    # ---------------------------------       
-                    update_cells = [
-                        {"column_id": COL_ID["status"], "value": nuevo_status},
-                        {"column_id": COL_ID["almacenista"], "value": nuevo_almacenista},
-                        {"column_id": COL_ID["issue"], "value": nuevo_issue},
-                        {"column_id": COL_ID["minuto_final"], "value": nuevo_min_final},
-                    ]
+                        # Construir actualización
+                        update_cells = [
+                            {"column_id": COL_ID["status"], "value": nuevo_status},
+                            {"column_id": COL_ID["almacenista"], "value": nuevo_almacenista},
+                            {"column_id": COL_ID["issue"], "value": nuevo_issue},
+                            {"column_id": COL_ID["minuto_final"], "value": nuevo_min_final},
+                        ]
 
-                    #Crear objeto Row para Smartsheet
-                    update_row = smartsheet.models.Row()
-                    update_row.id = row_id
-                    update_row.cells = update_cells
+                        update_row = smartsheet.models.Row()
+                        update_row.id = row_id
+                        update_row.cells = update_cells
 
-                    # Enviar actualización a Smartsheet
-                    client.Sheets.update_rows(SHEET_ID, [update_row])
+                        client.Sheets.update_rows(SHEET_ID, [update_row])
 
-                    st.success("Cambios guardados correctamente.")
+                        st.success("Cambios guardados correctamente.")
 
-                    # Ocultar formulario después de guardar
-                    st.session_state.mostrar_edicion = False
+                        # Cerrar formulario
+                        st.session_state.mostrar_edicion = False
 
-                    #Marcar que debemos regresar a la tabla
-                    st.markdown("""
-                    <script>
-                    sessionStorage.setItem("volver_a_tabla",
-                    "1");
-                    </script>
-                    """, unsafe_allow_html=True)
+                        # Refrescar la tabla SIN mover el scroll
+                        st.session_state.refresh_flag = True
+                        st.rerun()
 
-                    st.rerun()
-
-                except Exception as e:
-                    st.error("❌ Error al guardar cambios en Smartsheet.")
-                    st.write(e)
-
-    st.markdown("""
-    <script>
-    document.addEventListener("DOMContentLoaded", function() {
-
-        // Restaurar scroll a la tabla si venimos de un rerun
-        let destino = sessionStorage.getItem("volver_a_tabla");
-
-        if(destino === "1"){
-            const anchor = document.getElementById("pos_tabla");
-            if(anchor){
-                anchor.scrollIntoView({behavior: "instant", block: "start"});
-            }
-            sessionStorage.setItem("volver_a_tabla", "0");
-        }
-
-    });
-
-    // Registrar cambios que deben volver a la tabla
-    document.addEventListener("click", function(){
-        sessionStorage.setItem("scrollPos", window.scrollY);
-    });
-    </script>
-    """, unsafe_allow_html=True)
-
-
-
+                    except Exception as e:
+                        st.error("❌ Error al guardar cambios en Smartsheet.")
+                        st.write(e)
