@@ -6,7 +6,7 @@ import smartsheet
 import re
 import io
 def df_to_excel_bytes(df):
-    output = io.BytesID()
+    output = io.BytesIO()
     with pd.ExcelWriter(outout, engine="xlswriter") as writer:
         df.to_excel(writer, index=False, sheet_name="Requisiciones")
     return output.getvalue()
@@ -773,6 +773,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
