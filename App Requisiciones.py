@@ -681,9 +681,6 @@ with tab2:
                     # Ocultar formulario después de guardar
                     st.session_state.mostrar_edicion = False
 
-                    # Recargar vista
-                    st.rerun()
-
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
@@ -706,6 +703,7 @@ st.markdown("""
     observer2.observe(document.body, {childList: true, subtree: true});
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
