@@ -554,7 +554,7 @@ with tab2:
     # TABLA PRINCIPAL
     # -------------------------------------------
 
-    st.markdown('<a id="tabla_reg"></a>', unsafe_allow_html=True)
+    st.markdown('<div id="pos_tabla"></div>', unsafe_allow_html=True)
        
     st.markdown("<div class='subtitulo-seccion'>Requisiciones registradas</div>", unsafe_allow_html=True)
 
@@ -680,6 +680,40 @@ with tab2:
                     # Ocultar formulario después de guardar
                     st.session_state.mostrar_edicion = False
 
+                    #Marcar que debemos regresar a la tabla
+                    st.markdown("""
+                    <script>
+                    sessionStorage.setItem("volver_a_tabla",
+                    "1"):
+                    </script>
+                    """, unsafe_allow_html=True
+
+                    st.rerun()
+
                 except Exception as e:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
+
+    st.markdown("""
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+
+        // Restaurar scroll a la tabla si venimos de un rerun
+        let destino = sessionStorage.getItem("volver_a_tabla");
+
+        if(destino === "1"){
+            const anchor = document.getElementById("pos_tabla");
+            if(anchor){
+                anchor.scrollIntoView({behavior: "instant", block: "start"});
+            }
+            sessionStorage.setItem("volver_a_tabla", "0");
+        }
+
+    });
+
+    // Registrar cambios que deben volver a la tabla
+    document.addEventListener("click", function(){
+        sessionStorage.setItem("scrollPos", window.scrollY);
+    });
+    </script>
+    """, unsafe_allow_html=True)
