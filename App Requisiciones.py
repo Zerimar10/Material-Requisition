@@ -588,14 +588,6 @@ with tab2:
                 if col in df_filtrado.columns:
                     df_filtrado = df_filtrado.drop(columns=[col])
 
-    # Ocultar columnas internas DESPUÉS de filtrar y convertir
-    df_visible = df_filtrado.drop(columns=columnas_ocultas, errors="ignore")
-
-    if st.session_state.refresh_flag:
-        tabla_container.dataframe(df_visible, hide_index=True, use_container_width=True)
-    else:
-        tabla_container.dataframe(df_visible, hide_index=True, use_container_width=True)
-
     # ---------------------------------------------------------
     # DESCARGAR TABLA EN EXCEL (VERSIÓN FILTRADA)
     # ---------------------------------------------------------
@@ -610,6 +602,14 @@ with tab2:
         label="📥 Descargar Excel",
         data=csv_bytes,
         file_name=f"requisiciones_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv", mime="text/csv")
+
+    # Ocultar columnas internas DESPUÉS de filtrar y convertir
+    df_visible = df_filtrado.drop(columns=columnas_ocultas, errors="ignore")
+
+    if st.session_state.refresh_flag:
+        tabla_container.dataframe(df_visible, hide_index=True, use_container_width=True)
+    else:
+        tabla_container.dataframe(df_visible, hide_index=True, use_container_width=True)
 
     # ----------------------------------------------
     # FORMULARIO DE EDICIÓN (VERSIÓN FINAL)
@@ -772,6 +772,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
