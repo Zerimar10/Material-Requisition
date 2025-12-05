@@ -576,15 +576,15 @@ with tab2:
 
     # Asegurar que min_final sea entero (sin decimales)
     df_filtrado["min_final"] = pd.to_numeric(
-        df_filtrado["min_final"],
+        df_filtrado.get("min_final"),
         errors="coerce"
     ).astype("Int64")
 
-    # Ocultar columnas internas DESPUÉS de filtrar y convertir
-    df_visible = df_filtrado.drop(columns=columnas_ocultas, errors="ignore")
-
     if "min_final" in df_visible.columns:
         df_visible = df_visible.drop(columns=["min_final"])
+
+    # Ocultar columnas internas DESPUÉS de filtrar y convertir
+    df_visible = df_filtrado.drop(columns=columnas_ocultas, errors="ignore")
 
     if st.session_state.refresh_flag:
         tabla_container.dataframe(df_visible, hide_index=True, use_container_width=True)
@@ -752,6 +752,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
