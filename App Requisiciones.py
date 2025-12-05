@@ -686,7 +686,7 @@ with tab2:
                     sessionStorage.setItem("volver_a_tabla",
                     "1"):
                     </script>
-                    """, unsafe_allow_html=True
+                    """, unsafe_allow_html=True)
 
                     st.rerun()
 
@@ -717,3 +717,4 @@ with tab2:
     });
     </script>
     """, unsafe_allow_html=True)
+
