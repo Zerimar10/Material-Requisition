@@ -107,7 +107,7 @@ def generar_id_desde_smartsheet():
         return "REQ-0001"
 
     nuevo_num = max(ids) + 1
-    return f"REQ-{nuevo_num:04d}"
+    return f"REQ-{nuevo_num:05d}"
 
 st.set_page_config(page_title="Sistema de Requisiciones", layout="wide")
 
@@ -768,6 +768,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
