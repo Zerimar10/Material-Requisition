@@ -692,3 +692,44 @@ with tab2:
                     except Exception as e:
                         st.error("❌ Error al guardar cambios en Smartsheet.")
                         st.write(e)
+
+# ============================================
+# 🔒 EVITAR QUE STREAMLIT SUBA EL SCROLL AL EDITAR
+# ============================================
+
+st.markdown("""
+<script>
+
+// Guardar posición del scroll en todo momento
+window.addEventListener('scroll', function() {
+    sessionStorage.setItem('scrollPos', window.scrollY);
+});
+
+// Función fuerte para restaurar scroll varias veces
+function restoreScroll() {
+    const y = sessionStorage.getItem('scrollPos');
+    if (y !== null) {
+        window.scrollTo(0, parseInt(y));
+    }
+}
+
+// MutationObserver para detectar cualquier re-render de Streamlit
+const observer = new MutationObserver((mutations) => {
+    // Streamlit re-render detected → intentar restaurar varias veces
+    restoreScroll();
+    setTimeout(restoreScroll, 30);
+    setTimeout(restoreScroll, 80);
+    setTimeout(restoreScroll, 150);
+    setTimeout(restoreScroll, 300);
+});
+
+// Observar toda la app
+observer.observe(document.body, { childList: true, subtree: true });
+
+// Restaurar al iniciar
+window.addEventListener('load', restoreScroll);
+
+</script>
+""", unsafe_allow_html=True)
+
+
