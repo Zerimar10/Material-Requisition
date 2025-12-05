@@ -588,22 +588,20 @@ with tab2:
     else:
         tabla_container.dataframe(df_visible, hide_index=True, use_container_width=True)
 
-    # -------------------------------------------
-    # EDITAR REQUISICIÓN
-    # -------------------------------------------
+    # ---------------------------------------------------------
+    # FORMULARIO DE EDICIÓN (NO DEBE ESTAR ARRIBA DE LA TABLA)
+    # ---------------------------------------------------------
+    st.markdown("<div id='area_edicion'></div>", unsafe_allow_html=True)
 
     # Variable de control para mostrar/ocultar formulario
     if "mostrar_edicion" not in st.session_state:
         st.session_state.mostrar_edicion = False
 
-    # Botón para activar / desactivar el formulario
     if st.button("✏️ Editar una requisición"):
         st.session_state.mostrar_edicion = not st.session_state.mostrar_edicion
 
-    # Si el usuario activó el modo edición → mostrar formulario
     if st.session_state.mostrar_edicion:
 
-        # Lista de IDs existentes
         lista_ids = df["ID"].unique().tolist()
         lista_ids_con_vacio = ["-- Seleccione --"] + lista_ids
 
@@ -612,20 +610,17 @@ with tab2:
         if id_editar != "-- Seleccione --":
             fila = df[df["ID"] == id_editar].iloc[0]
 
-            # Campos editables
             nuevo_status = st.selectbox(
                 "Nuevo status:",
-                ["Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"],
-                index=["Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"].index(fila["status"])
+                ["Pendiente","En proceso","Entregado","Cancelado","No encontrado"],
+                index=["Pendiente","En proceso","Entregado","Cancelado","No encontrado"].index(fila["status"])
             )
 
             nuevo_almacenista = st.text_input("Almacenista:", fila["almacenista"])
-
             nuevo_issue = st.checkbox("Issue", value=(fila["issue"] == True))
 
-            # Botón para guardar cambios
             if st.button("Guardar cambios"):
-
+    
                 try:
                     client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
 
@@ -684,7 +679,7 @@ with tab2:
                     st.markdown("""
                     <script>
                     sessionStorage.setItem("volver_a_tabla",
-                    "1"):
+                    "1");
                     </script>
                     """, unsafe_allow_html=True)
 
@@ -717,4 +712,5 @@ with tab2:
     });
     </script>
     """, unsafe_allow_html=True)
+
 
