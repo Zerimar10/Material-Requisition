@@ -404,9 +404,6 @@ with tab2:
     # ---------------------------------------
     st.success("🔓 Acceso concedido.")
 
-    # 🔄 Auto-refresco cada 15 segundos mientras este tab esté abierto
-    st_autorefresh(interval=15_000, key="auto_refresh_almacen")
-
     # Ocultar el input una vez autenticado (lo elimina del DOM)
     st.markdown("""
     <style>
@@ -564,6 +561,17 @@ with tab2:
 
     tabla_container = st.empty()
 
+    # Autorefresco solamente del contenedor
+    if "last_refresh" not in st.session_state:
+        st.session_state.last_refresh = time.time()
+
+    # Cada 15 segundos refrescar SOLO la tabla
+    if time.time() - st.session_state.last_refresh > 15:
+        st.session_state.last_refresh = time.time()
+        st.session_state.refresh_flag = True
+    else:
+        st.session_state.refresh_flag = False
+
     # Columnas internas que no deben verse
     columnas_ocultas = ["fecha_hora_dt","min_final", "row_id"]
 
@@ -576,8 +584,10 @@ with tab2:
     # Ocultar columnas internas DESPUÉS de filtrar y convertir
     df_visible = df_filtrado.drop(columns=columnas_ocultas, errors="ignore")
 
-    # Mostrar tabla
-    tabla_container.dataframe(df_visible, hide_index=True, use_container_width=True)
+    if st.session_state.refresh_flag:
+        tabla_container.dataframe(df_visible, hide_index=True, use_container_width=True)
+    else:
+        tabla_container.dataframe(df_visible, hide_index=True, use_container_width=True)
 
     # -------------------------------------------
     # EDITAR REQUISICIÓN
@@ -713,6 +723,7 @@ window.addEventListener("load", restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
