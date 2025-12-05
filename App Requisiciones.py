@@ -608,9 +608,11 @@ with tab2:
 
     st.markdown("""
     <style>
-    div[data-testid="stVerticalBlock"] > div:has(div[data-testid="stContainerBlock"]) {
+    /* Oculta borde y fondo del contenedor del formulario */
+    div.stContainer {
         border: none !important;
         box-shadow: none !important;
+        background-color: transparent !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -740,6 +742,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
