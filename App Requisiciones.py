@@ -601,7 +601,8 @@ with tab2:
     # ---------------------------------------------------------
     df_export = df_filtrado.copy()
 
-    df_export["min_final"] = pd.to_numeric(df_export.get("min_final"), errors="coerce").astyoe("Int64")
+    if "minuto_final" in df_export.columns:
+        df_export["minuto_final"] = pd.to_numeric(df_export["minuto_final"], errors="coerce")round(0).astype("Int64")
     
     csv_bytes = df_to_csv_bytes(df_export)
 
@@ -771,6 +772,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
