@@ -584,10 +584,6 @@ with tab2:
         errors="coerce"
     ).astype("Int64")
 
-    for col in ["min_final", "minuto_final"]:
-                if col in df_filtrado.columns:
-                    df_filtrado = df_filtrado.drop(columns=[col])
-
     # ---------------------------------------------------------
     # DESCARGAR TABLA EN EXCEL (VERSIÓN FILTRADA)
     # ---------------------------------------------------------
@@ -772,6 +768,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
