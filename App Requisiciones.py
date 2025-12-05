@@ -7,7 +7,7 @@ import re
 import io
 def df_to_excel_bytes(df):
     output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="xlswriter") as writer:
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         df.to_excel(writer, index=False, sheet_name="Requisiciones")
     return output.getvalue()
 
@@ -773,6 +773,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
