@@ -608,16 +608,16 @@ with tab2:
 
     st.markdown("""
     <style>
-    /* Elimina borde, fondo y sombra del bloque donde vive el container */
-    div[data-testid="stVerticalBlock"] div[style*="display: flex"] {
-        background: transparent !important;
+    /* Selecciona SOLO el contenedor con height=600px generado por Form Container */
+    div[direction="column"][height="600px"][data-testid="stVerticalBlock"] {
+        background-color: transparent !important;
         border: none !important;
         box-shadow: none !important;
     }
 
-    /* También borra estilos de wrappers interiores */
-    div[data-testid="stVerticalBlock"] div[style*="background-color"] {
-        background: transparent !important;
+    /* Limpia los div hijos que hereden estilos */
+    div[direction="column"][height="600px"][data-testid="stVerticalBlock"] > div {
+        background-color: transparent !important;
         border: none !important;
         box-shadow: none !important;
     }
@@ -749,6 +749,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
