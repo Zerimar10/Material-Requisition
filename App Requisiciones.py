@@ -606,6 +606,15 @@ with tab2:
     # Contenedor del formulario (solo se construye si está activo)
     form_container = st.container(height=600)
 
+    st.markdown("""
+    <style>
+    div[data-testid="stVerticalBlock"] > div:has(div[data-testid="stContainerBlock"]) {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     if st.session_state.mostrar_edicion:
 
         with form_container:
@@ -731,6 +740,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
