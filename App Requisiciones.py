@@ -604,7 +604,7 @@ with tab2:
         st.session_state.mostrar_edicion = not st.session_state.mostrar_edicion
 
     # Contenedor del formulario (solo se construye si está activo)
-    form_container = st.container()
+    form_container = st.container(height=600)
 
     if st.session_state.mostrar_edicion:
 
@@ -731,6 +731,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
