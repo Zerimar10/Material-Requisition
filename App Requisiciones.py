@@ -688,56 +688,24 @@ with tab2:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
 
-# --- Mantener posición de scroll aunque haya refresh ---
+
+# --- Evitar que Streamlit suba el scroll al actualizar widgets dinámicos ---
 st.markdown("""
 <script>
+    // Recordar la posición de scroll antes de cualquier interacción
+    document.addEventListener('click', () => {
+        sessionStorage.setItem('scrollPos', window.scrollY);
+    });
 
-let lastScroll = sessionStorage.getItem("scrollPos") || 0;
+    // Restaurar el scroll justo después de que Streamlit redibuje el DOM
+    const observer2 = new MutationObserver(() => {
+        let y = sessionStorage.getItem('scrollPos');
+        if (y !== null) window.scrollTo(0, parseInt(y));
+    });
 
-// Guardar scroll continuamente
-window.addEventListener("scroll", function(){
-    sessionStorage.setItem("scrollPos", window.scrollY);
-});
-
-// Función para restaurar el scroll varias veces
-function restoreScroll(){
-    let y = sessionStorage.getItem("scrollPos");
-    if (y !== null){
-        window.scrollTo(0, parseInt(y));
-    }
-}
-
-// Usar MutationObserver para detectar cuando Streamlit redibuja
-const observer = new MutationObserver((mutations) => {
-    setTimeout(restoreScroll, 50);
-    setTimeout(restoreScroll, 150);
-    setTimeout(restoreScroll, 300);
-    setTimeout(restoreScroll, 600);
-});
-
-// Observar cambios en toda la app
-observer.observe(document.body, {childList: true, subtree: true});
-
-// Restaurar scroll también al terminar de cargar
-window.addEventListener("load", restoreScroll);
-
+    observer2.observe(document.body, {childList: true, subtree: true});
 </script>
 """, unsafe_allow_html=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
