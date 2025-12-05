@@ -591,7 +591,7 @@ with tab2:
     # ---------------------------------------------------------
     # FORMULARIO DE EDICIÓN (NO DEBE ESTAR ARRIBA DE LA TABLA)
     # ---------------------------------------------------------
-    st.markdown("<div id='area_edicion'></div>", unsafe_allow_html=True)
+    st.markdown("<div id='form_anchor'></div>", unsafe_allow_html=True)
 
     # Variable de control para mostrar/ocultar formulario
     if "mostrar_edicion" not in st.session_state:
@@ -600,26 +600,33 @@ with tab2:
     if st.button("✏️ Editar una requisición"):
         st.session_state.mostrar_edicion = not st.session_state.mostrar_edicion
 
+    form_container = st.container()
+
     if st.session_state.mostrar_edicion:
+        with form_container:
+        
+            st.markdown("<script>location.href='#form_anchor';</script>", unsafe_allow_html=True)
 
-        lista_ids = df["ID"].unique().tolist()
-        lista_ids_con_vacio = ["-- Seleccione --"] + lista_ids
+            lista_ids = df["ID"].unique().tolist()
+            lista_ids_con_vacio = ["-- Seleccione --"] + lista_ids
 
-        id_editar = st.selectbox("Seleccione ID a editar:", lista_ids_con_vacio)
+            id_editar = st.selectbox("Seleccione ID a editar:", lista_ids_con_vacio)
 
-        if id_editar != "-- Seleccione --":
-            fila = df[df["ID"] == id_editar].iloc[0]
+            if id_editar != "-- Seleccione --":
+                fila = df[df["ID"] == id_editar].iloc[0]
 
-            nuevo_status = st.selectbox(
-                "Nuevo status:",
-                ["Pendiente","En proceso","Entregado","Cancelado","No encontrado"],
-                index=["Pendiente","En proceso","Entregado","Cancelado","No encontrado"].index(fila["status"])
-            )
+                nuevo_status = st.selectbox(
+                    "Nuevo status:",
+                    ["Pendiente","En proceso","Entregado","Cancelado","No encontrado"],
+                    index=["Pendiente","En proceso","Entregado","Cancelado","No encontrado"].index(fila["status"])
+                )
 
-            nuevo_almacenista = st.text_input("Almacenista:", fila["almacenista"])
-            nuevo_issue = st.checkbox("Issue", value=(fila["issue"] == True))
+                nuevo_almacenista = st.text_input("Almacenista:", fila["almacenista"])
+                nuevo_issue = st.checkbox("Issue", value=(fila["issue"] == True))
 
-            if st.button("Guardar cambios"):
+                if st.button("Guardar cambios"):
+                    # ... tu lógica para guardar
+                    pass
     
                 try:
                     client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
@@ -712,5 +719,6 @@ with tab2:
     });
     </script>
     """, unsafe_allow_html=True)
+
 
 
