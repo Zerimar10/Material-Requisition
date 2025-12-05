@@ -580,8 +580,8 @@ with tab2:
         errors="coerce"
     ).astype("Int64")
 
-    if "min_final" in df_visible.columns:
-        df_visible = df_visible.drop(columns=["min_final"])
+    if "min_final" in df_filtrado.columns:
+        df_filtrado = df_filtrado.drop(columns=["min_final"])
 
     # Ocultar columnas internas DESPUÉS de filtrar y convertir
     df_visible = df_filtrado.drop(columns=columnas_ocultas, errors="ignore")
@@ -752,6 +752,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
