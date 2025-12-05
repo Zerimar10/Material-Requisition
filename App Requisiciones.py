@@ -4,6 +4,12 @@ from datetime import datetime, timedelta
 import time
 import smartsheet
 import re
+import io
+def df_to_excel_bytes(df):
+    output = io.BytesID()
+    with pd.ExcelWriter(outout, engine="xlswriter") as writer:
+        df.to_excel(writer, index=False, sheet_name="Requisiciones")
+    return output.getvalue()
 
 ALMACEN_PASSWORD = st.secrets["ALMACEN_PASSWORD"]
 
@@ -592,6 +598,20 @@ with tab2:
     else:
         tabla_container.dataframe(df_visible, hide_index=True, use_container_width=True)
 
+    # ---------------------------------------------------------
+    # DESCARGAR TABLA EN EXCEL (VERSIÓN FILTRADA)
+    # ---------------------------------------------------------
+    excel_bytes = df_to_excel_bytes(df_visible)
+
+    nombre_archivo = f"requisiciones_{datetime.now().strftime('%Y-%m-%d_%H-%M')}.xlsx"
+
+    st.download_button(
+        label="📥 Descargar Excel",
+        data=excel_bytes,
+        file_name=nombre_archivo,
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
     # ----------------------------------------------
     # FORMULARIO DE EDICIÓN (VERSIÓN FINAL)
     # ----------------------------------------------
@@ -753,6 +773,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
