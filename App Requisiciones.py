@@ -7,18 +7,8 @@ import re
 import io
 from openpyxl import Workbook
 def df_to_excel_bytes(df):
-    output = io.BytesIO()
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Requisiciones"
-
-    ws.append(list(df.columns))
-
-    for row in df.itertuples(index=False, name=None):
-        ws.append(list(row))
-
-    wb.save(output)
-    return output.getvalue()
+    return
+df.to_csv(index=False).encode("utf-8-sig")
 
 ALMACEN_PASSWORD = st.secrets["ALMACEN_PASSWORD"]
 
@@ -782,6 +772,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
