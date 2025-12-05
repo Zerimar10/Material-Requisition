@@ -612,11 +612,11 @@ with tab2:
 
             # Forzar scroll hacia el formulario sin brincar arriba
             st.markdown("""
-            <script>
-                setTimeout(function() {
-                    document.getElementById('form_anchor').scrollIntoView({behavior: 'smooth'});
-                }, 150);
-            </script>
+            <style>
+            /* Oculta completamente el sidebar */
+            .css-1d391kg {display: none;}
+            .css-1cypcdb {display: none;}
+            <style>
             """, unsafe_allow_html=True)
 
             # -----------------------
@@ -731,5 +731,6 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
