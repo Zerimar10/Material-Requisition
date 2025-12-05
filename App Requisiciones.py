@@ -1,20 +1,4 @@
 import streamlit as st
-
-st.markdown("""
-<script>
-// --- RECUPERAR EL SCROLL JUSTO AL CARGAR LA PÁGINA ---
-document.addEventListener("DOMContentLoaded", function() {
-    const y = sessionStorage.getItem("scrollPos");
-    if (y !== null) window.scrollTo(0, parseInt(y));
-});
-
-// --- GUARDAR EL SCROLL ANTES DE QUE STREAMLIT REDIBUJE ---
-window.addEventListener("scroll", () => {
-    sessionStorage.setItem("scrollPos", window.scrollY);
-});
-</script>
-""", unsafe_allow_html=True)
-
 import pandas as pd
 from datetime import datetime, timedelta
 import time
@@ -701,6 +685,41 @@ with tab2:
                     st.error("❌ Error al guardar cambios en Smartsheet.")
                     st.write(e)
 
+    # ================================
+    # 🔥 SCRIPT QUE EVITA QUE SUBA EL SCROLL
+    # ================================
+
+    st.markdown("""
+    <script>
+
+    // Guardar scroll en cada interacción
+    document.addEventListener('click', () => {
+        sessionStorage.setItem('scrollPos', window.scrollY);
+    });
+    window.addEventListener('scroll', () => {
+        sessionStorage.setItem('scrollPos', window.scrollY);
+    });
+
+    // Restaurar scroll
+    function restoreScroll(){
+        const y = sessionStorage.getItem('scrollPos');
+        if (y !== null){
+            window.scrollTo(0, parseInt(y));
+        }
+    }
+
+    const observer = new MutationObserver(() => {
+        setTimeout(restoreScroll, 10);
+        setTimeout(restoreScroll, 80);
+        setTimeout(restoreScroll, 160);
+        setTimeout(restoreScroll, 300);
+    });
+
+    observer.observe(document.body, {childList: true, subtree: true});
+    window.addEventListener("load", restoreScroll);
+
+    </script>
+    """, unsafe_allow_html=True)
 
 
 
