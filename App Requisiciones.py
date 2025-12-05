@@ -608,11 +608,18 @@ with tab2:
 
     st.markdown("""
     <style>
-    /* Oculta borde y fondo del contenedor del formulario */
-    div.stContainer {
+    /* Selecciona el bloque con height=600 (el del formulario) y elimina su estilo */
+    div[style*="height: 600px"] {
+        background-color: transparent !important;
         border: none !important;
         box-shadow: none !important;
+    }
+
+    /* También limpia los div internos que hereden estilos */
+    div[style*="height: 600px"] > div {
         background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -742,6 +749,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
