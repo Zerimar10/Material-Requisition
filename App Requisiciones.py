@@ -5,10 +5,19 @@ import time
 import smartsheet
 import re
 import io
+from openpyxl import Workbook
 def df_to_excel_bytes(df):
     output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-        df.to_excel(writer, index=False, sheet_name="Requisiciones")
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Requisiciones"
+
+    ws.append(list(df.columns))
+
+    for row in df.itertuples(index=False, name=None):
+        ws.append(list(row))
+
+    wb.save(output)
     return output.getvalue()
 
 ALMACEN_PASSWORD = st.secrets["ALMACEN_PASSWORD"]
@@ -773,6 +782,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
