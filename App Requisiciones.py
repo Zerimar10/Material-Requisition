@@ -609,8 +609,6 @@ with tab2:
     # ---------------------------------------------------------
     excel_bytes = df_to_excel_bytes(df_visible)
 
-    nombre_archivo = f"requisiciones_{datetime.now().strftime('%Y-%m-%d_%H-%M')}.xlsx"
-
     st.download_button(
         label="📥 Descargar Excel",
         data=excel_bytes,
@@ -779,6 +777,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
