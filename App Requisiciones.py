@@ -624,6 +624,24 @@ with tab2:
 
             nuevo_issue = st.checkbox("Issue", value=(fila["issue"] == True))
 
+            # --- Evitar que Streamlit suba el scroll al actualizar widgets dinámicos ---
+            st.markdown("""
+            <script>
+                // Recordar la posición de scroll antes de cualquier interacción
+                document.addEventListener('click', () => {
+                    sessionStorage.setItem('scrollPos', window.scrollY);
+                });
+
+                // Restaurar el scroll justo después de que Streamlit redibuje el DOM
+                const observer2 = new MutationObserver(() => {
+                    let y = sessionStorage.getItem('scrollPos');
+                    if (y !== null) window.scrollTo(0, parseInt(y));
+                });
+
+                observer2.observe(document.body, {childList: true, subtree: true});
+            </script>
+            """, unsafe_allow_html=True)
+
             # Botón para guardar cambios
             if st.button("Guardar cambios"):
 
@@ -686,23 +704,6 @@ with tab2:
                     st.write(e)
 
 
-# --- Evitar que Streamlit suba el scroll al actualizar widgets dinámicos ---
-st.markdown("""
-<script>
-    // Recordar la posición de scroll antes de cualquier interacción
-    document.addEventListener('click', () => {
-        sessionStorage.setItem('scrollPos', window.scrollY);
-    });
-
-    // Restaurar el scroll justo después de que Streamlit redibuje el DOM
-    const observer2 = new MutationObserver(() => {
-        let y = sessionStorage.getItem('scrollPos');
-        if (y !== null) window.scrollTo(0, parseInt(y));
-    });
-
-    observer2.observe(document.body, {childList: true, subtree: true});
-</script>
-""", unsafe_allow_html=True)
 
 
 
