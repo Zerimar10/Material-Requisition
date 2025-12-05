@@ -7,7 +7,15 @@ import re
 import io
 
 def df_to_excel_bytes(df):
-    return df.to_csv(index=False).encode("utf-8-sig")
+    import pandas as pd
+    import io
+
+    output = io.BytesIO()
+
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Requisiciones")
+        
+    return output.getvalue()
 
 ALMACEN_PASSWORD = st.secrets["ALMACEN_PASSWORD"]
 
@@ -771,6 +779,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
