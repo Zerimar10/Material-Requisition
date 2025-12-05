@@ -604,7 +604,7 @@ with tab2:
     st.download_button(
         label="📥 Descargar Excel",
         data=csv_bytes,
-        file_name=f"requisiciones_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')},csv", mime="text/csv")
+        file_name=f"requisiciones_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv", mime="text/csv")
 
     # ----------------------------------------------
     # FORMULARIO DE EDICIÓN (VERSIÓN FINAL)
@@ -767,6 +767,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
