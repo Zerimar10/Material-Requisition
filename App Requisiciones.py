@@ -6,16 +6,8 @@ import smartsheet
 import re
 import io
 
-def df_to_excel_bytes(df):
-    import pandas as pd
-    import io
-
-    output = io.BytesIO()
-
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name="Requisiciones")
-        
-    return output.getvalue()
+def df_to_csv_bytes(df):  
+    return df.to_csv(index=False, encoding="utf-8-sig").encode()
 
 ALMACEN_PASSWORD = st.secrets["ALMACEN_PASSWORD"]
 
@@ -607,14 +599,12 @@ with tab2:
     # ---------------------------------------------------------
     # DESCARGAR TABLA EN EXCEL (VERSIÓN FILTRADA)
     # ---------------------------------------------------------
-    excel_bytes = df_to_excel_bytes(df_visible)
+    csv_bytes = df_to_csv_bytes(df_visible)
 
     st.download_button(
         label="📥 Descargar Excel",
-        data=excel_bytes,
-        file_name=nombre_archivo,
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    )
+        data=csv_bytes,
+        file_name=f"requisiciones_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')},csv", mime="text/csv")
 
     # ----------------------------------------------
     # FORMULARIO DE EDICIÓN (VERSIÓN FINAL)
@@ -777,6 +767,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
