@@ -583,6 +583,9 @@ with tab2:
     # Ocultar columnas internas DESPUÉS de filtrar y convertir
     df_visible = df_filtrado.drop(columns=columnas_ocultas, errors="ignore")
 
+    if "min_final" in df_visible.columns:
+        df_visible = df_visible.drop(columns=["min_final"])
+
     if st.session_state.refresh_flag:
         tabla_container.dataframe(df_visible, hide_index=True, use_container_width=True)
     else:
@@ -749,6 +752,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
