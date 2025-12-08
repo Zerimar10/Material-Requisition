@@ -483,9 +483,9 @@ with tab2:
 
             # 6) Semáforo
             def semaforo(m):
-                if m >= 120:
+                if m >= 35:
                     return "🔴"
-                if m >= 60:
+                if m >= 20:
                     return "🟡"
                 return "🟢"
 
@@ -759,6 +759,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
