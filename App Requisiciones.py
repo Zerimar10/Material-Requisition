@@ -727,6 +727,25 @@ with tab2:
                         st.error("❌ Error al guardar cambios en Smartsheet.")
                         st.write(e)
 
+# ============================================================
+# 🔄 AUTORREFRESCO REAL CADA 15 SEGUNDOS
+# ============================================================
+
+import streamlit as st
+import time
+
+# Tiempo en segundos para refrescar
+REFRESH_INTERVAL = 15
+
+# Guardar tiempo de la última actualización
+if "last_real_refresh" not in st.session_state:
+    st.session_state.last_real_refresh = time.time()
+
+# Si ya pasó el intervalo → forzar actualización
+if time.time() - st.session_state.last_real_refresh > REFRESH_INTERVAL:
+    st.session_state.last_real_refresh = time.time()
+    st.rerun()
+
 # ============================================
 # 🔒 EVITAR QUE STREAMLIT SUBA EL SCROLL AL EDITAR
 # ============================================
@@ -756,6 +775,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
