@@ -5,6 +5,7 @@ import time
 import smartsheet
 import re
 import io
+from streamlit_autorefresh import st_sutorefresh
 
 def df_to_csv_bytes(df):  
     return df.to_csv(index=False, encoding="utf-8-sig").encode()
@@ -405,6 +406,8 @@ with tab2:
     # ---------------------------------------
     st.success("🔓 Acceso concedido.")
 
+    st_autorefresh(interval=15_000, key="tab2_auto_refresh")
+
     # Ocultar el input una vez autenticado (lo elimina del DOM)
     st.markdown("""
     <style>
@@ -727,25 +730,6 @@ with tab2:
                         st.error("❌ Error al guardar cambios en Smartsheet.")
                         st.write(e)
 
-# ============================================================
-# 🔄 AUTORREFRESCO REAL CADA 15 SEGUNDOS
-# ============================================================
-
-import streamlit as st
-import time
-
-# Tiempo en segundos para refrescar
-REFRESH_INTERVAL = 15
-
-# Guardar tiempo de la última actualización
-if "last_real_refresh" not in st.session_state:
-    st.session_state.last_real_refresh = time.time()
-
-# Si ya pasó el intervalo → forzar actualización
-if time.time() - st.session_state.last_real_refresh > REFRESH_INTERVAL:
-    st.session_state.last_real_refresh = time.time()
-    st.rerun()
-
 # ============================================
 # 🔒 EVITAR QUE STREAMLIT SUBA EL SCROLL AL EDITAR
 # ============================================
@@ -775,6 +759,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
