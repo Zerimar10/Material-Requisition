@@ -5,7 +5,7 @@ import time
 import smartsheet
 import re
 import io
-from streamlit_autorefresh import st_sutorefresh
+from streamlit_autorefresh import st_autorefresh
 
 def df_to_csv_bytes(df):  
     return df.to_csv(index=False, encoding="utf-8-sig").encode()
@@ -759,6 +759,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
