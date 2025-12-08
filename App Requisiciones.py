@@ -370,7 +370,7 @@ with tab1:
         st.rerun()
 
 # ============================================================
-# TAB 2 — PANEL DE ALMACÉN
+# TAB 2 — PANEL DE ALMACÉN (OPTIMIZADO)
 # ============================================================
 
 with tab2:
@@ -380,7 +380,6 @@ with tab2:
     # ---------------------------------------
     # 1) Inicializar el estado de autenticación
     # ---------------------------------------
-    
     if "almacen_autenticando" not in st.session_state:
         st.session_state.almacen_autenticando = False
 
@@ -395,7 +394,6 @@ with tab2:
             if pwd == ALMACEN_PASSWORD:
                 st.session_state.almacen_autenticando = True
                 st.rerun()
-                
             else:
                 st.warning("🚫 Acceso restringido.")
                 st.stop()
@@ -416,7 +414,7 @@ with tab2:
     """, unsafe_allow_html=True)
 
     # ============================================================
-    # 🔥 OPTIMIZACIÓN — CACHE LOCAL DE DATOS DE SMartsheet
+    # 🔥 OPTIMIZACIÓN — CACHE LOCAL DE DATOS DE SMARTSHEET
     # ============================================================
 
     # Inicializar cache si no existe
@@ -428,92 +426,84 @@ with tab2:
     TTL = 15 # segundos
 
     def cargar_cache():
-        """Carga desde Smartsheet solo si es necesario."""
+        """Carga y transforma datos desde Smartsheet solo si es necesario."""
         ahora = time.time()
 
-        # Si nunca se ha cargado o ya pasó TTL → recargar
         if (
             st.session_state.df_cache is None
             or (ahora - st.session_state.last_reload) > TTL
             or st.session_state.get("forzar_recarga", False)
         ):
+            # 1) Carga cruda
             df_nuevo = cargar_desde_smartsheet().fillna("")
 
+            # 2) Garantizar columna min_final
+            if "min_final" not in df_nuevo.columns:
+                df_nuevo["min_final"] = None
+
+            # 3) Normalizar min_final
+            def normalizar_min_final(x):
+                s = str(x).strip().lower()
+                if s in ["", "none", "nan"]:
+                    return None
+                try:
+                    return int(float(x))
+                except:
+                    return None
+
+            df_nuevo["min_final"] = df_nuevo["min_final"].apply(normalizar_min_final)
+
+            # 4) Convertir fecha a datetime
+            df_nuevo["fecha_hora_dt"] = pd.to_datetime(
+                df_nuevo["fecha_hora"], errors="coerce"
+            )
+
+            # 5) Calcular minutos (vectorizado)
+            from datetime import datetime, timedelta
+            ahora_local = datetime.utcnow() - timedelta(hours=7)
+
+            minutos = pd.Series(0, index=df_nuevo.index, dtype="int64")
+            mask_valid = df_nuevo["fecha_hora_dt"].notna()
+
+            # Diferencia en minutos para filas con fecha válida
+            diffs = (
+                (ahora_local - df_nuevo.loc[mask_valid, "fecha_hora_dt"])
+                .dt.total_seconds() / 60
+            ).astype(int)
+            minutos.loc[mask_valid] = diffs.values
+
+            # Donde haya min_final, usamos ese valor (congelado)
+            mask_frozen = df_nuevo["min_final"].notna()
+            minutos.loc[mask_frozen] = df_nuevo.loc[mask_frozen, "min_final"].astype(int)
+
+            df_nuevo["minutos"] = minutos
+
+            # 6) Semáforo
+            def semaforo(m):
+                if m >= 120:
+                    return "🔴"
+                if m >= 60:
+                    return "🟡"
+                return "🟢"
+
+            df_nuevo["semaforo"] = df_nuevo["minutos"].apply(semaforo)
+
+            # 7) Ordenar por fecha desc
+            df_nuevo = df_nuevo.sort_values(by="fecha_hora_dt", ascending=False)
+
+            # Guardar en sesión
             st.session_state.df_cache = df_nuevo
             st.session_state.last_reload = ahora
             st.session_state.forzar_recarga = False
 
-        # Regresar copia (para evitar mutaciones)
+        # Regresar copia para evitar mutaciones
         return st.session_state.df_cache.copy()
 
-    # 👉 ESTA ES LA NUEVA LÍNEA PRINCIPAL:
+    # 👉 NUEVA LÍNEA PRINCIPAL OPTIMIZADA
     df = cargar_cache()
 
-    if "min_final" not in df.columns: df["min_final"] = None
-
-    # ============================================================
-    # CALCULAR MINUTOS + CONGELAMIENTO
-    # ============================================================
-
-    # Normalizar columna min_final (None o número)
-    df["min_final"] = df["min_final"].apply(
-        lambda x: None if str(x).strip().lower() in ["", "none", "nan"] else int(float(x))
-    )
-
-    # Convertir fecha a datetime
-    df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"], errors="coerce")
-
-    # Estados donde los minutos deben congelarse
-    estados_finales = ["Entregado", "Cancelado", "No encontrado"]
-
-    from datetime import datetime, timedelta
-
-    def calcular_minutos(row):
-        # Si la fecha no es válida → 0
-        if pd.isna(row["fecha_hora_dt"]):
-            return 0
-
-        # Si ya está congelado → regresar ese valor
-        if row["min_final"] is not None:
-            try:
-                return int(row["min_final"])
-            except:
-                pass
-
-        # Hora local correcta (UTC-7)
-        ahora = datetime.utcnow() - timedelta(hours=7)
-
-        # Si el status es final → congelar una sola vez
-        if row["status"] in estados_finales:
-            diff = (ahora - row["fecha_hora_dt"]).total_seconds() / 60
-            return int(diff)
-
-        # Caso normal (contador vivo)
-        diff = (ahora - row["fecha_hora_dt"]).total_seconds() / 60
-        return int(diff)
-
-    # Aplicar cálculo
-    df["minutos"] = df.apply(calcular_minutos, axis=1)
-
-    # Semáforo
-    def semaforo(m):
-        if m >= 120:
-            return "🔴"
-        if m >= 60:
-            return "🟡"
-        return "🟢"
-
-    df["semaforo"] = df["minutos"].apply(semaforo)
-
-    # Ordenar por fecha desc
-    df = df.sort_values(by="fecha_hora_dt", ascending=False)
-
+    # Columnas internas que no deben verse
     columnas_internas = ["min_final", "row_id", "fecha_hora_dt"]
-
-    df = df.copy()
-    for col in columnas_internas:
-        if col in df.columns:
-            df[col] = df[col]
 
     # -------------------------------------------
     # FILTROS
@@ -527,10 +517,8 @@ with tab2:
         st.session_state.filtro_status = []
 
     if "filtro_issue" not in st.session_state:
-        # Por defecto: mostrar todos (opción lógica, no filtro)
-        st.session_state.filtro_issue = ["Todos"]
+        st.session_state.filtro_issue = ["Todos"] # lógica: por defecto no filtrar
 
-    # Opciones del filtro de issue
     opciones_issue = ["Todos", "Sí", "No"]
 
     # 2) Controles visuales
@@ -574,23 +562,18 @@ with tab2:
 
     # Filtrar por issue
     f_issue = st.session_state.filtro_issue
-
-    # Si incluye "Todos" --> no filtramos nada por issue
     if "Todos" not in f_issue:
-        # Sólo "Sí"
         if "Sí" in f_issue and "No" not in f_issue:
             df_filtrado = df_filtrado[df_filtrado["issue"] == True]
-        # Sólo "No"
         elif "No" in f_issue and "Sí" not in f_issue:
             df_filtrado = df_filtrado[df_filtrado["issue"] == False]
-        # Si marca "Sí" y "No" sin "Todos" -> equivale a mostrar todo, no se aplica filtro extra
-    
+        # Si marca "Sí" y "No" sin "Todos" → equivale a todo, no se filtra extra
+
     # -------------------------------------------
     # TABLA PRINCIPAL
     # -------------------------------------------
 
     st.markdown('<div id="pos_tabla"></div>', unsafe_allow_html=True)
-       
     st.markdown("<div class='subtitulo-seccion'>Requisiciones registradas</div>", unsafe_allow_html=True)
 
     tabla_container = st.empty()
@@ -599,20 +582,16 @@ with tab2:
     if "last_refresh" not in st.session_state:
         st.session_state.last_refresh = time.time()
 
-    # Cada 15 segundos refrescar SOLO la tabla
     if time.time() - st.session_state.last_refresh > 15:
         st.session_state.last_refresh = time.time()
         st.session_state.refresh_flag = True
     else:
         st.session_state.refresh_flag = False
 
-    # Columnas internas que no deben verse
-    columnas_ocultas = ["fecha_hora_dt","min_final", "minuto_final", "row_id"]
-
-    # Asegurar que min_final sea entero (sin decimales)
+    # Asegurar que min_final sea entero (sin decimales) en el filtrado
     df_filtrado["min_final"] = pd.to_numeric(
         df_filtrado.get("min_final"),
-        errors="coerce"
+        errors="coerce",
     ).astype("Int64")
 
     # ---------------------------------------------------------
@@ -621,51 +600,46 @@ with tab2:
     df_export = df_filtrado.copy()
 
     if "minuto_final" in df_export.columns:
-        df_export["minuto_final"] = pd.to_numeric(df_export["minuto_final"], errors="coerce").round(0).astype("Int64")
-    
+        df_export["minuto_final"] = pd.to_numeric(
+            df_export["minuto_final"], errors="coerce"
+        ).round(0).astype("Int64")
+
     csv_bytes = df_to_csv_bytes(df_export)
 
     st.download_button(
         label="📥 Descargar Excel",
         data=csv_bytes,
-        file_name=f"requisiciones_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv", mime="text/csv")
+        file_name=f"requisiciones_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv",
+        mime="text/csv",
+    )
 
     # Ocultar columnas internas DESPUÉS de filtrar y convertir
+    columnas_ocultas = ["fecha_hora_dt", "min_final", "minuto_final", "row_id"]
     df_visible = df_filtrado.drop(columns=columnas_ocultas, errors="ignore")
 
-    if st.session_state.refresh_flag:
-        tabla_container.dataframe(df_visible, hide_index=True, use_container_width=True)
-    else:
-        tabla_container.dataframe(df_visible, hide_index=True, use_container_width=True)
+    tabla_container.dataframe(df_visible, hide_index=True, use_container_width=True)
 
     # ----------------------------------------------
     # FORMULARIO DE EDICIÓN (VERSIÓN FINAL)
     # ----------------------------------------------
 
-    # Ancla para evitar que Streamlit suba al inicio
     st.markdown("<a id='form_anchor'></a>", unsafe_allow_html=True)
 
-    # Variable que controla si se muestra o no el formulario
     if "mostrar_edicion" not in st.session_state:
         st.session_state.mostrar_edicion = False
 
-    # Botón para mostrar/ocultar formulario sin saltos
     if st.button("✏️ Editar una requisición"):
         st.session_state.mostrar_edicion = not st.session_state.mostrar_edicion
 
-    # Contenedor del formulario (solo se construye si está activo)
     form_container = st.container(height=600)
 
     st.markdown("""
     <style>
-    /* Selecciona SOLO el contenedor con height=600px generado por Form Container */
     div[direction="column"][height="600px"][data-testid="stVerticalBlock"] {
         background-color: transparent !important;
         border: none !important;
         box-shadow: none !important;
     }
-
-    /* Limpia los div hijos que hereden estilos */
     div[direction="column"][height="600px"][data-testid="stVerticalBlock"] > div {
         background-color: transparent !important;
         border: none !important;
@@ -678,10 +652,8 @@ with tab2:
 
         with form_container:
 
-            # Forzar scroll hacia el formulario sin brincar arriba
             st.markdown("""
             <style>
-            /* Oculta completamente el sidebar */
             .css-1d391kg {display: none;}
             .css-1cypcdb {display: none;}
             <style>
@@ -701,11 +673,12 @@ with tab2:
                 # -----------------------
                 # Campos editables
                 # -----------------------
-
                 nuevo_status = st.selectbox(
                     "Nuevo status:",
                     ["Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"],
-                    index=["Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"].index(fila["status"])
+                    index=[
+                        "Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"
+                    ].index(fila["status"]),
                 )
 
                 nuevo_almacenista = st.text_input("Almacenista:", fila["almacenista"])
@@ -720,21 +693,16 @@ with tab2:
                         client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
                         row_id = int(fila["row_id"])
 
-                        # Determinar nuevo min_final
                         estados_finales = ["Entregado", "Cancelado", "No encontrado"]
 
                         if nuevo_status in estados_finales:
-                            # Si ya tenía un min_final válido → se respeta
                             if pd.notna(fila["min_final"]) and str(fila["min_final"]).strip() not in ["None", "", "nan"]:
                                 nuevo_min_final = int(fila["min_final"])
                             else:
-                                # Congelamos los minutos actuales
                                 nuevo_min_final = int(fila["minutos"])
                         else:
-                            # Si NO es final → se limpia
                             nuevo_min_final = ""
 
-                        # Construir actualización
                         update_cells = [
                             {"column_id": COL_ID["status"], "value": nuevo_status},
                             {"column_id": COL_ID["almacenista"], "value": nuevo_almacenista},
@@ -750,11 +718,8 @@ with tab2:
 
                         st.success("Cambios guardados correctamente.")
 
-                        # Cerrar formulario
                         st.session_state.mostrar_edicion = False
                         st.session_state.forzar_recarga = True
-
-                        # Refrescar la tabla SIN mover el scroll
                         st.session_state.refresh_flag = True
                         st.rerun()
 
@@ -768,13 +733,10 @@ with tab2:
 
 st.markdown("""
 <script>
-
-// Guardar posición del scroll en todo momento
 window.addEventListener('scroll', function() {
     sessionStorage.setItem('scrollPos', window.scrollY);
 });
 
-// Función fuerte para restaurar scroll varias veces
 function restoreScroll() {
     const y = sessionStorage.getItem('scrollPos');
     if (y !== null) {
@@ -782,9 +744,7 @@ function restoreScroll() {
     }
 }
 
-// MutationObserver para detectar cualquier re-render de Streamlit
 const observer = new MutationObserver((mutations) => {
-    // Streamlit re-render detected → intentar restaurar varias veces
     restoreScroll();
     setTimeout(restoreScroll, 30);
     setTimeout(restoreScroll, 80);
@@ -792,14 +752,11 @@ const observer = new MutationObserver((mutations) => {
     setTimeout(restoreScroll, 300);
 });
 
-// Observar toda la app
 observer.observe(document.body, { childList: true, subtree: true });
-
-// Restaurar al iniciar
 window.addEventListener('load', restoreScroll);
-
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
