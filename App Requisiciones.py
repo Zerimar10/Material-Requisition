@@ -415,8 +415,39 @@ with tab2:
     </style>
     """, unsafe_allow_html=True)
 
-    # Ahora carga el panel normalmente
-    df = cargar_desde_smartsheet().fillna("")
+    # ============================================================
+    # 🔥 OPTIMIZACIÓN — CACHE LOCAL DE DATOS DE SMartsheet
+    # ============================================================
+
+    # Inicializar cache si no existe
+    if "df_cache" not in st.session_state:
+        st.session_state.df_cache = None
+        st.session_state.last_reload = 0 # timestamp
+
+    # Cada cuántos segundos refrescar Smartsheet
+    TTL = 15 # segundos
+
+    def cargar_cache():
+        """Carga desde Smartsheet solo si es necesario."""
+        ahora = time.time()
+
+        # Si nunca se ha cargado o ya pasó TTL → recargar
+        if (
+            st.session_state.df_cache is None
+            or (ahora - st.session_state.last_reload) > TTL
+            or st.session_state.get("forzar_recarga", False)
+        ):
+            df_nuevo = cargar_desde_smartsheet().fillna("")
+
+            st.session_state.df_cache = df_nuevo
+            st.session_state.last_reload = ahora
+            st.session_state.forzar_recarga = False
+
+        # Regresar copia (para evitar mutaciones)
+        return st.session_state.df_cache.copy()
+
+    # 👉 ESTA ES LA NUEVA LÍNEA PRINCIPAL:
+    df = cargar_cache()
 
     if "min_final" not in df.columns: df["min_final"] = None
 
@@ -721,6 +752,7 @@ with tab2:
 
                         # Cerrar formulario
                         st.session_state.mostrar_edicion = False
+                        st.session_state.forzar_recarga = True
 
                         # Refrescar la tabla SIN mover el scroll
                         st.session_state.refresh_flag = True
@@ -768,6 +800,7 @@ window.addEventListener('load', restoreScroll);
 
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
