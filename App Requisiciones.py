@@ -288,8 +288,8 @@ with tab1:
         folio = st.session_state.get("ultimo_id", "???")
         st.success(f"✔ Requisición {folio} enviada correctamente.")
 
-        # Esperar 3 segundos y ocultar
-        time.sleep(3)
+        # Esperar 4 segundos y ocultar
+        time.sleep(4)
         st.session_state.msg_ok = False
         st.rerun()
 
@@ -761,6 +761,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
