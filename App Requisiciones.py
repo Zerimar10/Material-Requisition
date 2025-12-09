@@ -87,6 +87,7 @@ def cargar_desde_smartsheet():
 # ============================================================
 
 def generar_id_desde_smartsheet():
+    st.session_state.ultimo_id = ID
     client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
     sheet = client.Sheets.get_sheet(SHEET_ID)
 
@@ -285,7 +286,8 @@ with tab1:
     # 3. Mensaje de éxito (si aplica)
     # -----------------------------
     if st.session_state.msg_ok:
-        st.success("✔ Solicitud enviada correctamente.")
+        folio = st.session_state.get("ultimo_id", "???")
+        st.success(f"✔ Requisición {folio} enviada correctamente.")
 
         # Esperar 3 segundos y ocultar
         time.sleep(3)
@@ -759,6 +761,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
