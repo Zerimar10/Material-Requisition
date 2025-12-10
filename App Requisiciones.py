@@ -236,7 +236,7 @@ with tab1:
     lista_cuartos = [
         "INTRODUCER","PU1","PU2","PU3","PU4","PVC1","PVC2","PVC3A","PVC3B",
         "PVC6","PVC7","PVC8","PVC9","PVCS","PAK1","MGLY","MASM1","MMCL",
-        "MM MOLD","MMFP","MIXIN","RESORTES"
+        "MM MOLD","MMFP","MIXING","RESORTES"
     ]
     lista_motivos = ["Proceso","Extra","Scrap","Navajas","Tooling"]
 
@@ -761,6 +761,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
