@@ -5,7 +5,6 @@ import time
 import smartsheet
 import re
 import io
-from streamlit_autorefresh import st_autorefresh
 
 def df_to_csv_bytes(df):  
     return df.to_csv(index=False, encoding="utf-8-sig").encode()
@@ -408,8 +407,6 @@ with tab2:
     # ---------------------------------------
     st.success("🔓 Acceso concedido.")
 
-    st_autorefresh(interval=15_000, key="tab2_auto_refresh")
-
     # Ocultar el input una vez autenticado (lo elimina del DOM)
     st.markdown("""
     <style>
@@ -761,6 +758,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
