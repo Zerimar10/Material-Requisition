@@ -281,16 +281,21 @@ with tab1:
         )
 
     # -----------------------------
-    # 3. Mensaje de éxito (si aplica)
+    # 3. Mensaje de éxito (si aplica) — SIN BLOQUEO
     # -----------------------------
     if st.session_state.msg_ok:
+
+        if "msg_timestamp" not in st.session_state:
+            st.session_state.msg_timestamp = time.time()
+
         folio = st.session_state.get("ultimo_id", "???")
         st.success(f"✔ Requisición {folio} enviada correctamente.")
 
-        # Esperar 4 segundos y ocultar
-        time.sleep(4)
-        st.session_state.msg_ok = False
-        st.rerun()
+        # Ocultar mensaje después de 4 segundos (sin sleep)
+        if time.time() - st.session_state.msg_timestamp > 4:
+            st.session_state.msg_ok = False
+            del st.session_state.msg_timestamp
+            st.rerun()
 
     # -----------------------------
     # 4. Guardar requisición
@@ -580,16 +585,6 @@ with tab2:
 
     tabla_container = st.empty()
 
-    # Autorefresco solamente del contenedor
-    if "last_refresh" not in st.session_state:
-        st.session_state.last_refresh = time.time()
-
-    if time.time() - st.session_state.last_refresh > 15:
-        st.session_state.last_refresh = time.time()
-        st.session_state.refresh_flag = True
-    else:
-        st.session_state.refresh_flag = False
-
     # Asegurar que min_final sea entero (sin decimales) en el filtrado
     df_filtrado["min_final"] = pd.to_numeric(
         df_filtrado.get("min_final"),
@@ -758,6 +753,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
