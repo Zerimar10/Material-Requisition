@@ -2,9 +2,12 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 import time
-import smartsheet
 import re
 import io
+import os
+import uuid
+
+st.set_page_config(page_title="Sistema de Requisiciones", layout="wide")
 
 def df_to_csv_bytes(df):  
     return df.to_csv(index=False, encoding="utf-8-sig").encode()
@@ -17,99 +20,99 @@ ALMACEN_PASSWORD = st.secrets["ALMACEN_PASSWORD"]
 
 CSV_PATH = "data/requisiciones.csv"
 
-# ============================================================
-# CONSTANTES SMARTSHEET
-# ============================================================
-SHEET_ID = 2854951320506244
+# ==========================
+# CSV LOCAL (FUENTE DE VERDAD)
+# ==========================
 
-COL_ID = {
-    "ID": 675055919648644,
-    "fecha_hora": 612161207095172,
-    "cuarto": 5115760834465668,
-    "work_order": 2863961020780420,
-    "numero_parte": 7367560648150916,
-    "numero_lote": 1738061113937796,
-    "cantidad": 6241660741308292,
-    "motivo": 3989860927623044,
-    "status": 8493460554993540,
-    "almacenista": 330686230384516,
-    "issue": 4834285857755012,
-    "minuto_final": 64199137644420,
-}
+COLUMNAS_BASE = [
+    "ID", "uuid", "fecha_hora", "cuarto", "work_order", "numero_parte", "numero_lote",
+    "cantidad", "motivo", "status", "almacenista", "issue", "min_final"
+]
 
-# ============================================================
-# FUNCIÓN → CARGAR DATOS DESDE SMARTSHEET
-# ============================================================
+def asegurar_directorio_csv():
+    carpeta = os.path.dirname(CSV_PATH)
+    if carpeta and not os.path.exists(carpeta):
+        os.makedirs(carpeta, exist_ok=True)
 
-def cargar_desde_smartsheet():
-    try:
-        client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
-        response = client.Sheets.get_sheet(SHEET_ID)
-        sheet = response # asegurar que sheet es realmente la hoja
-        
-        rows_data = []
+def cargar_desde_csv():
+    asegurar_directorio_csv()
 
-        # Si sheet.rows NO existe, mostrar error útil
-        if not hasattr(sheet, "rows"):
-            st.error("❌ Error: Smartsheet no devolvió 'rows'. ¿Filtro activo en la hoja?")
-            st.stop()
-
-        for row in sheet.rows:
-            data = {}
-            data["row_id"] = row.id
-
-            for cell in row.cells:
-                cid = cell.column_id
-                val = cell.value
-
-                for key, col_id in COL_ID.items():
-                    if cid == col_id:
-                        data[key] = val
-
-            if "ID" in data:
-                rows_data.append(data)
-
-        df = pd.DataFrame(rows_data)
-
-        df = df.fillna("")
-
-        df["fecha_hora_dt"] = pd.to_datetime(df["fecha_hora"], errors="coerce")
-
+    if not os.path.exists(CSV_PATH):
+        df = pd.DataFrame(columns=COLUMNAS_BASE)
         return df
 
-    except Exception as e:
-        st.error(f"❌ Error cargando Smartsheet: {e}")
-        st.stop()
+    df = pd.read_csv(CSV_PATH, dtype=str, encoding="utf-8-sig").fillna("")
 
-# ============================================================
-# FUNCIÓN → GENERAR ID CONSECUTIVO DESDE SMARTSHEET
-# ============================================================
+    # Normalizaciones
+    if "issue" in df.columns:
+        df["issue"] = df["issue"].astype(str).str.lower().isin(["true", "1", "yes", "si", "sí"])
 
-def generar_id_desde_smartsheet():
-    client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
-    sheet = client.Sheets.get_sheet(SHEET_ID)
+    if "cantidad" in df.columns:
+        df["cantidad"] = pd.to_numeric(df["cantidad"], errors="coerce").fillna(0).astype(int)
 
-    ids = []
+    # fecha_hora_dt para orden y cálculo
+    df["fecha_hora_dt"] = pd.to_datetime(df.get("fecha_hora", ""), errors="coerce")
 
-    for row in sheet.rows:
-        for cell in row.cells:
-            if cell.column_id == COL_ID["ID"]:
-                val = str(cell.value) if cell.value is not None else ""
-                if val.startswith("REQ-"):
-                    try:
-                        num = int(val.replace("REQ-", ""))
-                        ids.append(num)
-                    except:
-                        pass
+    # Garantizar columnas
+    for c in COLUMNAS_BASE:
+        if c not in df.columns:
+            df[c] = "" if c not in ["issue"] else False
 
-    # Si no hay ningún ID todavía
-    if not ids:
-        return "REQ-0001"
+    return df
 
-    nuevo_num = max(ids) + 1
-    return f"REQ-{nuevo_num:05d}"
+def guardar_a_csv(df):
+    asegurar_directorio_csv()
+    df_out = df.copy()
 
-st.set_page_config(page_title="Sistema de Requisiciones", layout="wide")
+    # Evitar guardar columnas internas
+    if "fecha_hora_dt" in df_out.columns:
+        df_out = df_out.drop(columns=["fecha_hora_dt"], errors="ignore")
+
+    # Asegurar orden de columnas (si faltan, se crean)
+    for c in COLUMNAS_BASE:
+        if c not in df_out.columns:
+            df_out[c] = "" if c not in ["issue"] else False
+    df_out = df_out[COLUMNAS_BASE]
+
+    df_out.to_csv(CSV_PATH, index=False, encoding="utf-8-sig")
+
+def siguiente_id(df):
+    # REQ-00001...
+    ids = df["ID"].astype(str).tolist() if "ID" in df.columns else []
+    nums = []
+    for v in ids:
+        if v.startswith("REQ-"):
+            try:
+                nums.append(int(v.replace("REQ-", "")))
+            except:
+                pass
+    nuevo = (max(nums) + 1) if nums else 1
+    return f"REQ-{nuevo:05d}"
+
+def ya_existe_uuid(df, u):
+    if "uuid" not in df.columns:
+        return False
+    return (df["uuid"].astype(str) == str(u)).any()
+
+def agregar_requisicion_csv(nueva_fila):
+    """
+    Inserta arriba y guarda.
+    Anti-duplicado: si uuid ya existe, no inserta.
+    """
+    df = cargar_desde_csv()
+
+    if ya_existe_uuid(df, nueva_fila["uuid"]):
+        return df, False
+
+    df_nueva = pd.DataFrame([nueva_fila])
+    df = pd.concat([df_nueva, df], ignore_index=True)
+
+    # Recalcular fecha_hora_dt y ordenar desc
+    df["fecha_hora_dt"] = pd.to_datetime(df.get("fecha_hora", ""), errors="coerce")
+    df = df.sort_values(by="fecha_hora_dt", ascending=False)
+
+    guardar_a_csv(df)
+    return df, True
 
 # =============================
 # ENCABEZADO CORPORATIVO
@@ -311,71 +314,54 @@ with tab1:
 
     if st.session_state.guardando:
 
-        # Generar ID único
-        ID = generar_id_desde_smartsheet()
+        # Generar ID local (sin internet)
+        df_actual = cargar_desde_csv()
+        ID = siguiente_id(df_actual)
         st.session_state.ultimo_id = ID
 
-        # Calcular hora local (UTC-7)
-        from datetime import datetime, timedelta
+        # Hora local (UTC-7) como tú lo usas
         hora_local = datetime.utcnow() - timedelta(hours=7)
+
+        # Anti-duplicado fuerte: uuid por evento de guardado
+        # (se crea UNA vez por intento)
+        if "pending_uuid" not in st.session_state:
+            st.session_state.pending_uuid = str(uuid.uuid4())
 
         nueva_fila = {
             "ID": ID,
+            "uuid": st.session_state.pending_uuid,
             "fecha_hora": hora_local.strftime("%Y-%m-%d %H:%M:%S"),
             "cuarto": st.session_state.form_cuarto,
             "work_order": st.session_state.form_work,
             "numero_parte": st.session_state.form_parte,
             "numero_lote": st.session_state.form_lote,
-            "cantidad": st.session_state.form_cantidad,
+            "cantidad": int(st.session_state.form_cantidad),
             "motivo": st.session_state.form_motivo,
             "status": "Pendiente",
             "almacenista": "",
             "issue": False,
-            "min_final": None,
+            "min_final": "",
         }
 
-        # -----------------------------
-        # ENVIAR DIRECTO A SMARTSHEET
-        # -----------------------------
+        # Guardar en CSV
         try:
-            client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
-
-            new_row = smartsheet.models.Row()
-            new_row.to_top = True
-
-            def add_cell(colname, val):
-                cell = smartsheet.models.Cell()
-                cell.column_id = COL_ID[colname]
-                cell.value = val
-                new_row.cells.append(cell)
-
-            add_cell("ID", nueva_fila["ID"])
-            add_cell("fecha_hora", nueva_fila["fecha_hora"])
-            add_cell("cuarto", nueva_fila["cuarto"])
-            add_cell("work_order", nueva_fila["work_order"])
-            add_cell("numero_parte", nueva_fila["numero_parte"])
-            add_cell("numero_lote", nueva_fila["numero_lote"])
-            add_cell("cantidad", nueva_fila["cantidad"])
-            add_cell("motivo", nueva_fila["motivo"])
-            add_cell("status", nueva_fila["status"])
-            add_cell("almacenista", "")
-            add_cell("issue", False)
-            add_cell("minuto_final", "")
-            
-            # Enviar la fila
-            client.Sheets.add_rows(SHEET_ID, [new_row])
-            
+            _, inserted = agregar_requisicion_csv(nueva_fila)
+            if not inserted:
+                st.warning("⚠️ Esta requisición ya estaba registrada (evité duplicado).")
         except Exception as e:
-            st.error("❌ Error al enviar a Smartsheet.")
+            st.error("❌ Error al guardar en CSV.")
             st.write(e)
-            
-        # Fin del proceso
+
+        # Limpiar bandera de intento
+        st.session_state.pop("pending_uuid", None)
+
+        # Fin del proceso (igual que ya lo tienes)
         st.session_state.guardando = False
         st.session_state.msg_ok = True
         st.session_state.reset_form = True
-
         st.rerun()
 
+        
 # ============================================================
 # TAB 2 — PANEL DE ALMACÉN (OPTIMIZADO)
 # ============================================================
@@ -442,7 +428,7 @@ with tab2:
             or st.session_state.get("forzar_recarga", False)
         ):
             # 1) Carga cruda
-            df_nuevo = cargar_desde_smartsheet().fillna("")
+            df_nuevo = cargar_desde_csv().fillna("")
 
             # 2) Garantizar columna min_final
             if "min_final" not in df_nuevo.columns:
@@ -510,7 +496,7 @@ with tab2:
     df = cargar_cache()
 
     # Columnas internas que no deben verse
-    columnas_internas = ["min_final", "row_id", "fecha_hora_dt"]
+    columnas_internas = ["min_final", "fecha_hora_dt"]
 
     # -------------------------------------------
     # FILTROS
@@ -596,10 +582,8 @@ with tab2:
     # ---------------------------------------------------------
     df_export = df_filtrado.copy()
 
-    if "minuto_final" in df_export.columns:
-        df_export["minuto_final"] = pd.to_numeric(
-            df_export["minuto_final"], errors="coerce"
-        ).round(0).astype("Int64")
+    if "min_final" in df_export.columns:
+        df_export["min_final"] = pd.to_numeric(df_export["min_final"], errors="coerce").round(0).astype("Int64")
 
     csv_bytes = df_to_csv_bytes(df_export)
 
@@ -611,7 +595,7 @@ with tab2:
     )
 
     # Ocultar columnas internas DESPUÉS de filtrar y convertir
-    columnas_ocultas = ["fecha_hora_dt", "min_final", "minuto_final", "row_id"]
+    columnas_ocultas = ["fecha_hora_dt", "min_final"]
     df_visible = df_filtrado.drop(columns=columnas_ocultas, errors="ignore")
 
     tabla_container.dataframe(df_visible, hide_index=True, use_container_width=True)
@@ -686,43 +670,46 @@ with tab2:
                 # -----------------------
                 if st.button("Guardar cambios"):
 
-                    try:
-                        client = smartsheet.Smartsheet(st.secrets["SMARTSHEET_TOKEN"])
-                        row_id = int(fila["row_id"])
+                    df_all = cargar_desde_csv()
 
-                        estados_finales = ["Entregado", "Cancelado", "No encontrado"]
+                    idx = df_all.index[df_all["ID"] == id_editar]
+                    if len(idx) == 0:
+                        st.error("No encontré ese ID en el CSV.")
+                        st.stop()
 
-                        if nuevo_status in estados_finales:
-                            if pd.notna(fila["min_final"]) and str(fila["min_final"]).strip() not in ["None", "", "nan"]:
-                                nuevo_min_final = int(fila["min_final"])
-                            else:
-                                nuevo_min_final = int(fila["minutos"])
+                    i = idx[0]
+
+                    estados_finales = ["Entregado", "Cancelado", "No encontrado"]
+
+                    # Recalcular minutos para la fila (igual que tu lógica)
+                    ahora_local = datetime.utcnow() - timedelta(hours=7)
+                    fecha_dt = pd.to_datetime(df_all.loc[i, "fecha_hora"], errors="coerce")
+                    minutos_actual = ""
+                    if pd.notna(fecha_dt):
+                        minutos_actual = int((ahora_local - fecha_dt).total_seconds() / 60)
+
+                    # Si pasa a final, congelar min_final
+                    min_final_actual = str(df_all.loc[i, "min_final"]).strip()
+                    if nuevo_status in estados_finales:
+                        if min_final_actual not in ["", "None", "nan"]:
+                            nuevo_min_final = min_final_actual
                         else:
-                            nuevo_min_final = ""
+                            nuevo_min_final = str(minutos_actual)
+                    else:
+                        nuevo_min_final = ""
 
-                        update_cells = [
-                            {"column_id": COL_ID["status"], "value": nuevo_status},
-                            {"column_id": COL_ID["almacenista"], "value": nuevo_almacenista},
-                            {"column_id": COL_ID["issue"], "value": nuevo_issue},
-                            {"column_id": COL_ID["minuto_final"], "value": nuevo_min_final},
-                        ]
+                    df_all.loc[i, "status"] = nuevo_status
+                    df_all.loc[i, "almacenista"] = nuevo_almacenista
+                    df_all.loc[i, "issue"] = bool(nuevo_issue)
+                    df_all.loc[i, "min_final"] = nuevo_min_final
 
-                        update_row = smartsheet.models.Row()
-                        update_row.id = row_id
-                        update_row.cells = update_cells
+                    guardar_a_csv(df_all)
 
-                        client.Sheets.update_rows(SHEET_ID, [update_row])
+                    st.success("Cambios guardados correctamente.")
 
-                        st.success("Cambios guardados correctamente.")
-
-                        st.session_state.mostrar_edicion = False
-                        st.session_state.forzar_recarga = True
-                        st.session_state.refresh_flag = True
-                        st.rerun()
-
-                    except Exception as e:
-                        st.error("❌ Error al guardar cambios en Smartsheet.")
-                        st.write(e)
+                    st.session_state.mostrar_edicion = False
+                    st.session_state.forzar_recarga = True
+                    st.rerun()
 
 # ============================================
 # 🔒 EVITAR QUE STREAMLIT SUBA EL SCROLL AL EDITAR
@@ -753,6 +740,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
