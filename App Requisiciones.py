@@ -306,11 +306,18 @@ with tab1:
     if "guardando" not in st.session_state:
         st.session_state.guardando = False
 
-    guardar = st.button("Guardar Requisicion",disabled=st.session_state.guardando)
-
-    if guardar and not st.session_state.guardando:
+    def iniciar_guardado():
+        # Se ejecuta en el click, antes del rerun automático
         st.session_state.guardando = True
-        st.rerun()
+
+    # Texto dinámico del botón
+    texto_boton = "⏳ Guardando..." if st.session_state.guardando else "Guardar Requisicion"
+
+    st.button(
+        "Guardar Requisicion",
+        disabled=st.session_state.guardando,
+        on_click=iniciar_guardado
+    )
 
     if st.session_state.guardando:
 
@@ -746,6 +753,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
