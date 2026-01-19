@@ -601,7 +601,7 @@ with tab2:
     )
 
     # Ocultar columnas internas DESPUÉS de filtrar y convertir
-    columnas_ocultas = ["fecha_hora_dt", "min_final"]
+    columnas_ocultas = ["fecha_hora_dt", "min_final", "uuid"]
     df_visible = df_filtrado.drop(columns=columnas_ocultas, errors="ignore")
 
     tabla_container.dataframe(df_visible, hide_index=True, use_container_width=True)
@@ -746,6 +746,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
