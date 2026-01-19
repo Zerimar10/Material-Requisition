@@ -406,6 +406,15 @@ with tab2:
     </style>
     """, unsafe_allow_html=True)
 
+    colR1, colR2 = st.columns([1, 5])
+    with colR1:
+        if st.button("🔄 Refrescar", use_container_width=True):
+            st.session_state.forzar_recarga = True
+            st.rerun()
+
+    with colR2:
+        st.caption("Actualiza la tabla sin recargar toda la página.")
+
     # ============================================================
     # 🔥 OPTIMIZACIÓN — CACHE LOCAL DE DATOS DE SMARTSHEET
     # ============================================================
@@ -740,6 +749,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
