@@ -412,9 +412,6 @@ with tab2:
             st.session_state.forzar_recarga = True
             st.rerun()
 
-    with colR2:
-        st.caption("Actualiza la tabla sin recargar toda la página.")
-
     # ============================================================
     # 🔥 OPTIMIZACIÓN — CACHE LOCAL DE DATOS DE SMARTSHEET
     # ============================================================
@@ -749,6 +746,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
