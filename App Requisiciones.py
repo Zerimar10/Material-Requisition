@@ -34,45 +34,61 @@ def asegurar_directorio_csv():
     if carpeta and not os.path.exists(carpeta):
         os.makedirs(carpeta, exist_ok=True)
 
+from pandas.errors import ParserError
+
 def cargar_desde_csv():
     asegurar_directorio_csv()
 
     if not os.path.exists(CSV_PATH):
-        df = pd.DataFrame(columns=COLUMNAS_BASE)
-        return df
+        return pd.DataFrame(columns=COLUMNAS_BASE)
 
-    df = pd.read_csv(CSV_PATH, dtype=str, encoding="utf-8-sig").fillna("")
+    try:
+        df = pd.read_csv(CSV_PATH, dtype=str, encoding="utf-8-sig").fillna("")
+    except ParserError:
+        # Plan B: intenta rescatar lo que se pueda y omite líneas malas
+        df = pd.read_csv(
+            CSV_PATH,
+            dtype=str,
+            encoding="utf-8-sig",
+            engine="python",
+            on_bad_lines="skip"
+        ).fillna("")
+        st.warning("⚠️ Se detectaron líneas dañadas en el CSV y fueron omitidas. (posible guardado simultáneo)")
 
-    # Normalizaciones
+    # Normalizaciones...
     if "issue" in df.columns:
         df["issue"] = df["issue"].astype(str).str.lower().isin(["true", "1", "yes", "si", "sí"])
-
     if "cantidad" in df.columns:
         df["cantidad"] = pd.to_numeric(df["cantidad"], errors="coerce").fillna(0).astype(int)
 
-    # fecha_hora_dt para orden y cálculo
     df["fecha_hora_dt"] = pd.to_datetime(df.get("fecha_hora", ""), errors="coerce")
 
-    # Garantizar columnas
     for c in COLUMNAS_BASE:
         if c not in df.columns:
             df[c] = "" if c not in ["issue"] else False
 
     return df
 
+from filelock import FileLock
+
+LOCK_PATH = CSV_PATH + ".lock"
+
 def guardar_a_csv(df):
     asegurar_directorio_csv()
+
     df_out = df.copy()
+    df_out = df_out.drop(columns=["fecha_hora_dt"], errors="ignore")
 
-    # Evitar guardar columnas internas
-    if "fecha_hora_dt" in df_out.columns:
-        df_out = df_out.drop(columns=["fecha_hora_dt"], errors="ignore")
-
-    # Asegurar orden de columnas (si faltan, se crean)
     for c in COLUMNAS_BASE:
         if c not in df_out.columns:
             df_out[c] = "" if c not in ["issue"] else False
     df_out = df_out[COLUMNAS_BASE]
+
+    # Lock + escritura atómica (temp -> replace)
+    with FileLock(LOCK_PATH, timeout=10):
+        tmp_path = CSV_PATH + ".tmp"
+        df_out.to_csv(tmp_path, index=False, encoding="utf-8-sig")
+        os.replace(tmp_path, CSV_PATH)
 
     df_out.to_csv(CSV_PATH, index=False, encoding="utf-8-sig")
 
@@ -753,6 +769,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
