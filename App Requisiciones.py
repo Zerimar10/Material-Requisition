@@ -8,6 +8,7 @@ import os
 import uuid
 from pandas.errors import ParserError
 from filelock import FileLock
+import glob
 
 st.set_page_config(page_title="Sistema de Requisiciones", layout="wide")
 
@@ -447,6 +448,50 @@ with tab2:
 
     st.success("🔓 Acceso concedido.")
 
+    # ==========================
+    # 🔐 ADMIN: DESCARGA BACKUPS (oculto)
+    # ==========================
+
+    with st.expander("🛠️ Admin (Backups)", expanded=False):
+        # Lista de backups disponibles
+        backups = sorted(
+            glob.glob(f"{BACKUP_DIR}/requisiciones_backup_*.csv"),
+            reverse=True
+        )
+
+        if not backups:
+            st.info("No hay respaldos todavía.")
+        else:
+            st.caption(f"Respaldos encontrados: {len(backups)}")
+
+            # Descargar el más reciente
+            ultimo = backups[0]
+            with open(ultimo, "rb") as f:
+                st.download_button(
+                    label="⬇️ Descargar respaldo MÁS RECIENTE",
+                    data=f.read(),
+                    file_name=os.path.basename(ultimo),
+                    mime="text/csv",
+                    use_container_width=True
+                )
+
+            # (Opcional) elegir uno específico
+            st.markdown("**O elegir un respaldo específico:**")
+            seleccionado = st.selectbox(
+                "Selecciona un respaldo",
+                backups,
+                format_func=lambda p: os.path.basename(p)
+            )
+
+            with open(seleccionado, "rb") as f:
+                st.download_button(
+                    label="⬇️ Descargar respaldo seleccionado",
+                    data=f.read(),
+                    file_name=os.path.basename(seleccionado),
+                    mime="text/csv",
+                    use_container_width=True
+                )
+
     st.markdown("""
     <style>
     input[type="password"] {display:none;}
@@ -734,4 +779,5 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
 
