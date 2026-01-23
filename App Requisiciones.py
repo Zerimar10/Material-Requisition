@@ -700,9 +700,6 @@ with tab2:
             # crea columnas si faltan
             df_visible[c] = "" if c != "issue" else False
 
-    # Mostrar editor
-    st.caption("✍️ Puedes editar directamente: Almacenista, Status e Issue. Los cambios se guardan al presionar “Guardar cambios”.")
-
     editado = st.data_editor(
         df_visible,
         hide_index=True,
@@ -826,6 +823,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
