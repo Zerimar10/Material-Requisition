@@ -22,6 +22,7 @@ ALMACEN_PASSWORD = st.secrets["ALMACEN_PASSWORD"]
 
 CSV_PATH = "data/requisiciones.csv"
 LOCK_PATH = CSV_PATH + ".lock"
+BACKUP_DIR = "data/backups"
 
 # ==========================
 # CSV LOCAL (FUENTE DE VERDAD)
@@ -37,6 +38,21 @@ def asegurar_directorio_csv():
     if carpeta and not os.path.exists(carpeta):
         os.makedirs(carpeta, exist_ok=True)
 
+def crear_backup_csv(motivo="auto"):
+    if not os.path.exists(CSV_PATH):
+        return
+
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    backup_path = f"{BACKUP_DIR}/requisiciones_backup_{timestamp}_{motivo}.csv"
+
+    try:
+        import shutil
+        shutil.copy2(CSV_PATH, backup_path)
+    except Exception as e:
+        st.warning(f"⚠️ No se pudo crear respaldo del CSV: {e}")
+
 def _read_csv_seguro():
     """
     Lee CSV con fallback si hay líneas dañadas.
@@ -49,7 +65,8 @@ def _read_csv_seguro():
         df = pd.read_csv(CSV_PATH, dtype=str, encoding="utf-8-sig").fillna("")
         return df
     except ParserError:
-        # Rescate: omite líneas malas en vez de tirar la app
+        crear_backup_csv("corrupto")
+
         df = pd.read_csv(
             CSV_PATH,
             dtype=str,
@@ -57,7 +74,11 @@ def _read_csv_seguro():
             engine="python",
             on_bad_lines="skip"
         ).fillna("")
-        st.warning("⚠️ Se detectaron líneas dañadas en el CSV y fueron omitidas. (posible guardado simultáneo)")
+
+        st.warning(
+            "⚠️ El archivo de requisiciones estaba dañado. "
+            "Se creó un respaldo automático y se omitieron líneas inválidas."
+        )
         return df
 
 def cargar_desde_csv():
@@ -108,6 +129,8 @@ def guardar_a_csv(df):
     df_out = df_out[COLUMNAS_BASE]
 
     with FileLock(LOCK_PATH, timeout=10):
+        crear_backup_csv("pre_guardado")
+        
         tmp_path = CSV_PATH + ".tmp"
         df_out.to_csv(tmp_path, index=False, encoding="utf-8-sig")
         os.replace(tmp_path, CSV_PATH)
@@ -711,3 +734,4 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
