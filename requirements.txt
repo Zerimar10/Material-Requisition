@@ -1,5 +1,6 @@
 pandas
 smartsheet-python-sdk
-streamlit
+streamlit>=1.31
 streamlit-autorefresh
 filelock
+altair<6
