@@ -6,10 +6,12 @@ import re
 import io
 import os
 import uuid
+from pandas.errors import ParserError
+from filelock import FileLock
 
 st.set_page_config(page_title="Sistema de Requisiciones", layout="wide")
 
-def df_to_csv_bytes(df):  
+def df_to_csv_bytes(df):
     return df.to_csv(index=False, encoding="utf-8-sig").encode()
 
 ALMACEN_PASSWORD = st.secrets["ALMACEN_PASSWORD"]
@@ -19,6 +21,7 @@ ALMACEN_PASSWORD = st.secrets["ALMACEN_PASSWORD"]
 # ============================================================
 
 CSV_PATH = "data/requisiciones.csv"
+LOCK_PATH = CSV_PATH + ".lock"
 
 # ==========================
 # CSV LOCAL (FUENTE DE VERDAD)
@@ -34,18 +37,19 @@ def asegurar_directorio_csv():
     if carpeta and not os.path.exists(carpeta):
         os.makedirs(carpeta, exist_ok=True)
 
-from pandas.errors import ParserError
-
-def cargar_desde_csv():
-    asegurar_directorio_csv()
-
+def _read_csv_seguro():
+    """
+    Lee CSV con fallback si hay líneas dañadas.
+    No usa lock; el lock se maneja fuera cuando se necesita.
+    """
     if not os.path.exists(CSV_PATH):
         return pd.DataFrame(columns=COLUMNAS_BASE)
 
     try:
         df = pd.read_csv(CSV_PATH, dtype=str, encoding="utf-8-sig").fillna("")
+        return df
     except ParserError:
-        # Plan B: intenta rescatar lo que se pueda y omite líneas malas
+        # Rescate: omite líneas malas en vez de tirar la app
         df = pd.read_csv(
             CSV_PATH,
             dtype=str,
@@ -54,43 +58,59 @@ def cargar_desde_csv():
             on_bad_lines="skip"
         ).fillna("")
         st.warning("⚠️ Se detectaron líneas dañadas en el CSV y fueron omitidas. (posible guardado simultáneo)")
+        return df
 
-    # Normalizaciones...
+def cargar_desde_csv():
+    """
+    Lee con lock para no leer a mitad de una escritura.
+    """
+    asegurar_directorio_csv()
+
+    # Si no existe aún, regresa estructura vacía
+    if not os.path.exists(CSV_PATH):
+        return pd.DataFrame(columns=COLUMNAS_BASE)
+
+    with FileLock(LOCK_PATH, timeout=10):
+        df = _read_csv_seguro()
+
+    # Normalizaciones
     if "issue" in df.columns:
         df["issue"] = df["issue"].astype(str).str.lower().isin(["true", "1", "yes", "si", "sí"])
+
     if "cantidad" in df.columns:
         df["cantidad"] = pd.to_numeric(df["cantidad"], errors="coerce").fillna(0).astype(int)
 
+    # fecha_hora_dt para orden y cálculo
     df["fecha_hora_dt"] = pd.to_datetime(df.get("fecha_hora", ""), errors="coerce")
 
+    # Garantizar columnas
     for c in COLUMNAS_BASE:
         if c not in df.columns:
             df[c] = "" if c not in ["issue"] else False
 
     return df
 
-from filelock import FileLock
-
-LOCK_PATH = CSV_PATH + ".lock"
-
 def guardar_a_csv(df):
+    """
+    Escritura atómica: escribe a .tmp y luego reemplaza.
+    Usa lock para evitar corrupción.
+    """
     asegurar_directorio_csv()
-
     df_out = df.copy()
+
+    # Evitar guardar columnas internas
     df_out = df_out.drop(columns=["fecha_hora_dt"], errors="ignore")
 
+    # Asegurar orden de columnas (si faltan, se crean)
     for c in COLUMNAS_BASE:
         if c not in df_out.columns:
             df_out[c] = "" if c not in ["issue"] else False
     df_out = df_out[COLUMNAS_BASE]
 
-    # Lock + escritura atómica (temp -> replace)
     with FileLock(LOCK_PATH, timeout=10):
         tmp_path = CSV_PATH + ".tmp"
         df_out.to_csv(tmp_path, index=False, encoding="utf-8-sig")
         os.replace(tmp_path, CSV_PATH)
-
-    df_out.to_csv(CSV_PATH, index=False, encoding="utf-8-sig")
 
 def siguiente_id(df):
     # REQ-00001...
@@ -114,21 +134,47 @@ def agregar_requisicion_csv(nueva_fila):
     """
     Inserta arriba y guarda.
     Anti-duplicado: si uuid ya existe, no inserta.
+
+    OJO IMPORTANTE: se hace TODO dentro de lock (leer -> checar -> insertar -> guardar)
+    para evitar que 2 usuarios se pisen y se pierdan registros.
     """
-    df = cargar_desde_csv()
+    asegurar_directorio_csv()
 
-    if ya_existe_uuid(df, nueva_fila["uuid"]):
-        return df, False
+    with FileLock(LOCK_PATH, timeout=10):
+        df = _read_csv_seguro()
 
-    df_nueva = pd.DataFrame([nueva_fila])
-    df = pd.concat([df_nueva, df], ignore_index=True)
+        # Garantizar columnas mínimas si CSV venía vacío/dañado
+        for c in COLUMNAS_BASE:
+            if c not in df.columns:
+                df[c] = "" if c not in ["issue"] else False
 
-    # Recalcular fecha_hora_dt y ordenar desc
-    df["fecha_hora_dt"] = pd.to_datetime(df.get("fecha_hora", ""), errors="coerce")
-    df = df.sort_values(by="fecha_hora_dt", ascending=False)
+        # Normalizaciones básicas para comparar uuid
+        if "uuid" not in df.columns:
+            df["uuid"] = ""
 
-    guardar_a_csv(df)
-    return df, True
+        if ya_existe_uuid(df, nueva_fila["uuid"]):
+            return cargar_desde_csv(), False
+
+        df_nueva = pd.DataFrame([nueva_fila])
+        df = pd.concat([df_nueva, df], ignore_index=True)
+
+        # Orden por fecha desc
+        df["fecha_hora_dt"] = pd.to_datetime(df.get("fecha_hora", ""), errors="coerce")
+        df = df.sort_values(by="fecha_hora_dt", ascending=False)
+
+        # Guardado atómico (sin salir del lock)
+        df_out = df.drop(columns=["fecha_hora_dt"], errors="ignore")
+        for c in COLUMNAS_BASE:
+            if c not in df_out.columns:
+                df_out[c] = "" if c not in ["issue"] else False
+        df_out = df_out[COLUMNAS_BASE]
+
+        tmp_path = CSV_PATH + ".tmp"
+        df_out.to_csv(tmp_path, index=False, encoding="utf-8-sig")
+        os.replace(tmp_path, CSV_PATH)
+
+    # Devuelve el df ya normalizado con fecha_hora_dt
+    return cargar_desde_csv(), True
 
 # =============================
 # ENCABEZADO CORPORATIVO
@@ -148,7 +194,7 @@ st.markdown("""
         .titulo-nordson {
             font-size: 38px;
             font-weight: 600;
-            color: #0072CE; /* Azul Nordson */
+            color: #0072CE;
             font-family: Arial, Helvetica, sans-serif;
             letter-spacing: 1px;
         }
@@ -210,7 +256,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-
 # ============================================================
 # TABS
 # ============================================================
@@ -240,8 +285,7 @@ with tab1:
     if "reset_form" not in st.session_state:
         st.session_state.reset_form = False
 
-    # Si viene de un guardado anterior, aquí sí limpiamos,
-    # PERO ANTES de crear los widgets
+    # Si viene de un guardado anterior, limpiar antes de crear widgets
     if st.session_state.reset_form:
         st.session_state.form_cuarto = ""
         st.session_state.form_work = ""
@@ -264,73 +308,43 @@ with tab1:
     col1, col2 = st.columns(2)
 
     with col1:
-        st.selectbox(
-            "Cuarto",
-            lista_cuartos,
-            key="form_cuarto"
-        )
-
-        st.text_input(
-            "Work Order",
-            key="form_work"
-        )
-
-        st.text_input(
-            "Número de Parte",
-            key="form_parte"
-        )
+        st.selectbox("Cuarto", lista_cuartos, key="form_cuarto")
+        st.text_input("Work Order", key="form_work")
+        st.text_input("Número de Parte", key="form_parte")
 
     with col2:
-        st.text_input(
-            "Número de Lote",
-            key="form_lote"
-        )
-
-        st.number_input(
-            "Cantidad",
-            min_value=1,
-            step=1,
-            key="form_cantidad"
-        )
-
-        st.selectbox(
-            "Motivo",
-            lista_motivos,
-            key="form_motivo"
-        )
+        st.text_input("Número de Lote", key="form_lote")
+        st.number_input("Cantidad", min_value=1, step=1, key="form_cantidad")
+        st.selectbox("Motivo", lista_motivos, key="form_motivo")
 
     # -----------------------------
-    # 3. Mensaje de éxito (si aplica) — SIN BLOQUEO
+    # 3. Mensaje de éxito
     # -----------------------------
     if st.session_state.msg_ok:
-
         if "msg_timestamp" not in st.session_state:
             st.session_state.msg_timestamp = time.time()
 
         folio = st.session_state.get("ultimo_id", "???")
         st.success(f"✔ Requisición {folio} enviada correctamente.")
 
-        # Ocultar mensaje después de 4 segundos (sin sleep)
         if time.time() - st.session_state.msg_timestamp > 4:
             st.session_state.msg_ok = False
             del st.session_state.msg_timestamp
             st.rerun()
 
     # -----------------------------
-    # 4. Guardar requisición
+    # 4. Guardar requisición (botón con texto dinámico)
     # -----------------------------
     if "guardando" not in st.session_state:
         st.session_state.guardando = False
 
     def iniciar_guardado():
-        # Se ejecuta en el click, antes del rerun automático
         st.session_state.guardando = True
 
-    # Texto dinámico del botón
     texto_boton = "⏳ Guardando..." if st.session_state.guardando else "Guardar Requisicion"
 
     st.button(
-        "Guardar Requisicion",
+        texto_boton,
         disabled=st.session_state.guardando,
         on_click=iniciar_guardado
     )
@@ -342,11 +356,10 @@ with tab1:
         ID = siguiente_id(df_actual)
         st.session_state.ultimo_id = ID
 
-        # Hora local (UTC-7) como tú lo usas
+        # Hora local (UTC-7)
         hora_local = datetime.utcnow() - timedelta(hours=7)
 
-        # Anti-duplicado fuerte: uuid por evento de guardado
-        # (se crea UNA vez por intento)
+        # Anti-duplicado fuerte: uuid por intento
         if "pending_uuid" not in st.session_state:
             st.session_state.pending_uuid = str(uuid.uuid4())
 
@@ -366,7 +379,7 @@ with tab1:
             "min_final": "",
         }
 
-        # Guardar en CSV
+        # Guardar en CSV (con lock)
         try:
             _, inserted = agregar_requisicion_csv(nueva_fila)
             if not inserted:
@@ -378,30 +391,23 @@ with tab1:
         # Limpiar bandera de intento
         st.session_state.pop("pending_uuid", None)
 
-        # Fin del proceso (igual que ya lo tienes)
+        # Fin
         st.session_state.guardando = False
         st.session_state.msg_ok = True
         st.session_state.reset_form = True
         st.rerun()
 
-        
 # ============================================================
-# TAB 2 — PANEL DE ALMACÉN (OPTIMIZADO)
+# TAB 2 — PANEL DE ALMACÉN
 # ============================================================
 
 with tab2:
 
     st.markdown("<div class='titulo-seccion'>Panel de Almacén</div>", unsafe_allow_html=True)
 
-    # ---------------------------------------
-    # 1) Inicializar el estado de autenticación
-    # ---------------------------------------
     if "almacen_autenticando" not in st.session_state:
         st.session_state.almacen_autenticando = False
 
-    # ---------------------------------------
-    # 2) Si NO está autenticado → pedir contraseña
-    # ---------------------------------------
     if not st.session_state.almacen_autenticando:
 
         pwd = st.text_input("Ingrese contraseña:", type="password", key="pwd_input")
@@ -416,12 +422,8 @@ with tab2:
 
         st.stop()
 
-    # ---------------------------------------
-    # 3) SI YA ESTÁ AUTENTICADO → mostrar panel
-    # ---------------------------------------
     st.success("🔓 Acceso concedido.")
 
-    # Ocultar el input una vez autenticado (lo elimina del DOM)
     st.markdown("""
     <style>
     input[type="password"] {display:none;}
@@ -429,26 +431,23 @@ with tab2:
     </style>
     """, unsafe_allow_html=True)
 
+    # Botón refresh
     colR1, colR2 = st.columns([1, 5])
     with colR1:
         if st.button("🔄 Refrescar", use_container_width=True):
             st.session_state.forzar_recarga = True
             st.rerun()
+    with colR2:
+        st.caption("Actualiza la tabla sin recargar toda la página.")
 
-    # ============================================================
-    # 🔥 OPTIMIZACIÓN — CACHE LOCAL DE DATOS DE SMARTSHEET
-    # ============================================================
-
-    # Inicializar cache si no existe
+    # Cache
     if "df_cache" not in st.session_state:
         st.session_state.df_cache = None
-        st.session_state.last_reload = 0 # timestamp
+        st.session_state.last_reload = 0
 
-    # Cada cuántos segundos refrescar Smartsheet
-    TTL = 15 # segundos
+    TTL = 15
 
     def cargar_cache():
-        """Carga y transforma datos desde Smartsheet solo si es necesario."""
         ahora = time.time()
 
         if (
@@ -456,14 +455,11 @@ with tab2:
             or (ahora - st.session_state.last_reload) > TTL
             or st.session_state.get("forzar_recarga", False)
         ):
-            # 1) Carga cruda
             df_nuevo = cargar_desde_csv().fillna("")
 
-            # 2) Garantizar columna min_final
             if "min_final" not in df_nuevo.columns:
                 df_nuevo["min_final"] = None
 
-            # 3) Normalizar min_final
             def normalizar_min_final(x):
                 s = str(x).strip().lower()
                 if s in ["", "none", "nan"]:
@@ -475,32 +471,21 @@ with tab2:
 
             df_nuevo["min_final"] = df_nuevo["min_final"].apply(normalizar_min_final)
 
-            # 4) Convertir fecha a datetime
-            df_nuevo["fecha_hora_dt"] = pd.to_datetime(
-                df_nuevo["fecha_hora"], errors="coerce"
-            )
+            df_nuevo["fecha_hora_dt"] = pd.to_datetime(df_nuevo["fecha_hora"], errors="coerce")
 
-            # 5) Calcular minutos (vectorizado)
-            from datetime import datetime, timedelta
             ahora_local = datetime.utcnow() - timedelta(hours=7)
 
             minutos = pd.Series(0, index=df_nuevo.index, dtype="int64")
             mask_valid = df_nuevo["fecha_hora_dt"].notna()
 
-            # Diferencia en minutos para filas con fecha válida
-            diffs = (
-                (ahora_local - df_nuevo.loc[mask_valid, "fecha_hora_dt"])
-                .dt.total_seconds() / 60
-            ).astype(int)
+            diffs = ((ahora_local - df_nuevo.loc[mask_valid, "fecha_hora_dt"]).dt.total_seconds() / 60).astype(int)
             minutos.loc[mask_valid] = diffs.values
 
-            # Donde haya min_final, usamos ese valor (congelado)
             mask_frozen = df_nuevo["min_final"].notna()
             minutos.loc[mask_frozen] = df_nuevo.loc[mask_frozen, "min_final"].astype(int)
 
             df_nuevo["minutos"] = minutos
 
-            # 6) Semáforo
             def semaforo(m):
                 if m >= 35:
                     return "🔴"
@@ -510,40 +495,29 @@ with tab2:
 
             df_nuevo["semaforo"] = df_nuevo["minutos"].apply(semaforo)
 
-            # 7) Ordenar por fecha desc
             df_nuevo = df_nuevo.sort_values(by="fecha_hora_dt", ascending=False)
 
-            # Guardar en sesión
             st.session_state.df_cache = df_nuevo
             st.session_state.last_reload = ahora
             st.session_state.forzar_recarga = False
 
-        # Regresar copia para evitar mutaciones
         return st.session_state.df_cache.copy()
 
-    # 👉 NUEVA LÍNEA PRINCIPAL OPTIMIZADA
     df = cargar_cache()
-
-    # Columnas internas que no deben verse
-    columnas_internas = ["min_final", "fecha_hora_dt"]
 
     # -------------------------------------------
     # FILTROS
     # -------------------------------------------
 
-    # 1) Inicializar estado de filtros
     if "filtro_cuarto" not in st.session_state:
         st.session_state.filtro_cuarto = []
-
     if "filtro_status" not in st.session_state:
         st.session_state.filtro_status = []
-
     if "filtro_issue" not in st.session_state:
-        st.session_state.filtro_issue = ["Todos"] # lógica: por defecto no filtrar
+        st.session_state.filtro_issue = ["Todos"]
 
     opciones_issue = ["Todos", "Sí", "No"]
 
-    # 2) Controles visuales
     colA, colB, colC = st.columns(3)
 
     with colA:
@@ -567,50 +541,32 @@ with tab2:
             default=st.session_state.filtro_issue,
         )
 
-    # 3) Aplicar filtros
     df_filtrado = df.copy()
 
-    # Filtrar por cuarto
     if st.session_state.filtro_cuarto:
-        df_filtrado = df_filtrado[
-            df_filtrado["cuarto"].isin(st.session_state.filtro_cuarto)
-        ]
+        df_filtrado = df_filtrado[df_filtrado["cuarto"].isin(st.session_state.filtro_cuarto)]
 
-    # Filtrar por status
     if st.session_state.filtro_status:
-        df_filtrado = df_filtrado[
-            df_filtrado["status"].isin(st.session_state.filtro_status)
-        ]
+        df_filtrado = df_filtrado[df_filtrado["status"].isin(st.session_state.filtro_status)]
 
-    # Filtrar por issue
     f_issue = st.session_state.filtro_issue
     if "Todos" not in f_issue:
         if "Sí" in f_issue and "No" not in f_issue:
             df_filtrado = df_filtrado[df_filtrado["issue"] == True]
         elif "No" in f_issue and "Sí" not in f_issue:
             df_filtrado = df_filtrado[df_filtrado["issue"] == False]
-        # Si marca "Sí" y "No" sin "Todos" → equivale a todo, no se filtra extra
 
     # -------------------------------------------
     # TABLA PRINCIPAL
     # -------------------------------------------
 
-    st.markdown('<div id="pos_tabla"></div>', unsafe_allow_html=True)
     st.markdown("<div class='subtitulo-seccion'>Requisiciones registradas</div>", unsafe_allow_html=True)
-
     tabla_container = st.empty()
 
-    # Asegurar que min_final sea entero (sin decimales) en el filtrado
-    df_filtrado["min_final"] = pd.to_numeric(
-        df_filtrado.get("min_final"),
-        errors="coerce",
-    ).astype("Int64")
+    df_filtrado["min_final"] = pd.to_numeric(df_filtrado.get("min_final"), errors="coerce").astype("Int64")
 
-    # ---------------------------------------------------------
-    # DESCARGAR TABLA EN EXCEL (VERSIÓN FILTRADA)
-    # ---------------------------------------------------------
+    # Descargar CSV filtrado
     df_export = df_filtrado.copy()
-
     if "min_final" in df_export.columns:
         df_export["min_final"] = pd.to_numeric(df_export["min_final"], errors="coerce").round(0).astype("Int64")
 
@@ -623,18 +579,15 @@ with tab2:
         mime="text/csv",
     )
 
-    # Ocultar columnas internas DESPUÉS de filtrar y convertir
+    # Ocultar internas + uuid
     columnas_ocultas = ["fecha_hora_dt", "min_final", "uuid"]
     df_visible = df_filtrado.drop(columns=columnas_ocultas, errors="ignore")
 
     tabla_container.dataframe(df_visible, hide_index=True, use_container_width=True)
 
     # ----------------------------------------------
-    # FORMULARIO DE EDICIÓN (VERSIÓN FINAL)
+    # FORMULARIO DE EDICIÓN
     # ----------------------------------------------
-
-    st.markdown("<a id='form_anchor'></a>", unsafe_allow_html=True)
-
     if "mostrar_edicion" not in st.session_state:
         st.session_state.mostrar_edicion = False
 
@@ -659,19 +612,8 @@ with tab2:
     """, unsafe_allow_html=True)
 
     if st.session_state.mostrar_edicion:
-
         with form_container:
 
-            st.markdown("""
-            <style>
-            .css-1d391kg {display: none;}
-            .css-1cypcdb {display: none;}
-            <style>
-            """, unsafe_allow_html=True)
-
-            # -----------------------
-            # Selección de ID a editar
-            # -----------------------
             lista_ids = df["ID"].unique().tolist()
             lista_ids_con_vacio = ["-- Seleccione --"] + lista_ids
 
@@ -680,62 +622,62 @@ with tab2:
             if id_editar != "-- Seleccione --":
                 fila = df[df["ID"] == id_editar].iloc[0]
 
-                # -----------------------
-                # Campos editables
-                # -----------------------
                 nuevo_status = st.selectbox(
                     "Nuevo status:",
                     ["Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"],
-                    index=[
-                        "Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"
-                    ].index(fila["status"]),
+                    index=["Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"].index(fila["status"]),
                 )
 
                 nuevo_almacenista = st.text_input("Almacenista:", fila["almacenista"])
                 nuevo_issue = st.checkbox("Issue", value=(fila["issue"] is True))
 
-                # -----------------------
-                # Guardar cambios
-                # -----------------------
                 if st.button("Guardar cambios"):
 
-                    df_all = cargar_desde_csv()
+                    # Lock para que edición no choque con guardados
+                    with FileLock(LOCK_PATH, timeout=10):
+                        df_all = _read_csv_seguro()
 
-                    idx = df_all.index[df_all["ID"] == id_editar]
-                    if len(idx) == 0:
-                        st.error("No encontré ese ID en el CSV.")
-                        st.stop()
+                        # Garantizar columnas
+                        for c in COLUMNAS_BASE:
+                            if c not in df_all.columns:
+                                df_all[c] = "" if c not in ["issue"] else False
 
-                    i = idx[0]
+                        idx = df_all.index[df_all["ID"].astype(str) == str(id_editar)]
+                        if len(idx) == 0:
+                            st.error("No encontré ese ID en el CSV.")
+                            st.stop()
 
-                    estados_finales = ["Entregado", "Cancelado", "No encontrado"]
+                        i = idx[0]
 
-                    # Recalcular minutos para la fila (igual que tu lógica)
-                    ahora_local = datetime.utcnow() - timedelta(hours=7)
-                    fecha_dt = pd.to_datetime(df_all.loc[i, "fecha_hora"], errors="coerce")
-                    minutos_actual = ""
-                    if pd.notna(fecha_dt):
-                        minutos_actual = int((ahora_local - fecha_dt).total_seconds() / 60)
+                        estados_finales = ["Entregado", "Cancelado", "No encontrado"]
 
-                    # Si pasa a final, congelar min_final
-                    min_final_actual = str(df_all.loc[i, "min_final"]).strip()
-                    if nuevo_status in estados_finales:
-                        if min_final_actual not in ["", "None", "nan"]:
-                            nuevo_min_final = min_final_actual
+                        ahora_local = datetime.utcnow() - timedelta(hours=7)
+                        fecha_dt = pd.to_datetime(df_all.loc[i, "fecha_hora"], errors="coerce")
+                        minutos_actual = ""
+                        if pd.notna(fecha_dt):
+                            minutos_actual = int((ahora_local - fecha_dt).total_seconds() / 60)
+
+                        min_final_actual = str(df_all.loc[i, "min_final"]).strip()
+                        if nuevo_status in estados_finales:
+                            if min_final_actual not in ["", "None", "nan"]:
+                                nuevo_min_final = min_final_actual
+                            else:
+                                nuevo_min_final = str(minutos_actual)
                         else:
-                            nuevo_min_final = str(minutos_actual)
-                    else:
-                        nuevo_min_final = ""
+                            nuevo_min_final = ""
 
-                    df_all.loc[i, "status"] = nuevo_status
-                    df_all.loc[i, "almacenista"] = nuevo_almacenista
-                    df_all.loc[i, "issue"] = bool(nuevo_issue)
-                    df_all.loc[i, "min_final"] = nuevo_min_final
+                        df_all.loc[i, "status"] = nuevo_status
+                        df_all.loc[i, "almacenista"] = nuevo_almacenista
+                        df_all.loc[i, "issue"] = bool(nuevo_issue)
+                        df_all.loc[i, "min_final"] = nuevo_min_final
 
-                    guardar_a_csv(df_all)
+                        # Escritura atómica
+                        df_out = df_all.copy()
+                        tmp_path = CSV_PATH + ".tmp"
+                        df_out.to_csv(tmp_path, index=False, encoding="utf-8-sig")
+                        os.replace(tmp_path, CSV_PATH)
 
                     st.success("Cambios guardados correctamente.")
-
                     st.session_state.mostrar_edicion = False
                     st.session_state.forzar_recarga = True
                     st.rerun()
@@ -769,59 +711,3 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
