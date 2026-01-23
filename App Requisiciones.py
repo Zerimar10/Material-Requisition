@@ -652,103 +652,153 @@ with tab2:
     df_visible = df_filtrado.drop(columns=columnas_ocultas, errors="ignore")
 
     # ==========================
-    # TABLA EDITABLE (solo 3 campos) + FIX "NO SE DETECTARON CAMBIOS"
+    # TABLA EDITABLE ESTABLE (solo 3 campos)
     # ==========================
 
     EDITABLE_COLS = ["almacenista", "status", "issue"]
     STATUS_OPCIONES = ["Pendiente", "En proceso", "Entregado", "Cancelado", "No encontrado"]
+    ESTADOS_FINALES = ["Entregado", "Cancelado", "No encontrado"]
 
-    # Ocultar internas en la vista (pero NO perder uuid internamente)
-    columnas_ocultas_vista = ["fecha_hora_dt", "min_final", "uuid"]
-    df_visible = df_filtrado.drop(columns=columnas_ocultas_vista, errors="ignore").copy()
-
-    # df_trabajo conserva uuid para mapear filas al CSV (aunque no se muestre)
-    df_trabajo = df_filtrado.copy()
-
-    # Asegurar índice consistente para comparar fila a fila
-    df_trabajo = df_trabajo.reset_index(drop=True)
-    df_visible = df_visible.reset_index(drop=True)
-
-    # Asegurar que existan columnas editables
-    for c in EDITABLE_COLS:
-        if c not in df_visible.columns:
-            df_visible[c] = "" if c != "issue" else False
-
-    # Config de columnas
-    column_config = {
-        "almacenista": st.column_config.TextColumn(
-            "Almacenista",
-            help="Escribe tu nombre y haz click fuera de la celda para confirmar",
-            max_chars=40
-        ),
-        "status": st.column_config.SelectboxColumn(
-            "Status",
-            help="Selecciona el status",
-            options=STATUS_OPCIONES,
-            required=True
-        ),
-        "issue": st.column_config.CheckboxColumn(
-            "Issue",
-            help="Marca si hubo issue",
-            default=False
-        ),
-    }
-
-    # --- Dirty flag: marca cuando se cambia algo en el editor
     def _mark_dirty():
         st.session_state.editor_dirty = True
 
     if "editor_dirty" not in st.session_state:
         st.session_state.editor_dirty = False
 
-    # Snapshot base: el estado con el que se pintó la tabla (para comparar)
-    # Se reinicia cuando fuerzas recarga (tu botón refresh lo hace con forzar_recarga)
-    if "editor_snapshot" not in st.session_state or st.session_state.get("forzar_recarga", False):
-        st.session_state.editor_snapshot = df_visible.copy()
+    # 1) Fuente estable SIEMPRE: CSV (NO df_cache con minutos/semaforo)
+    # Importante: leer CSV en cada render para que la vista tenga lo último guardado.
+    df_base = cargar_desde_csv().fillna("")
+
+    # Aplicar filtros sobre df_base (estable)
+    df_filtrado_estable = df_base.copy()
+
+    if st.session_state.filtro_cuarto:
+        df_filtrado_estable = df_filtrado_estable[df_filtrado_estable["cuarto"].isin(st.session_state.filtro_cuarto)]
+
+    if st.session_state.filtro_status:
+        df_filtrado_estable = df_filtrado_estable[df_filtrado_estable["status"].isin(st.session_state.filtro_status)]
+
+    f_issue = st.session_state.filtro_issue
+    if "Todos" not in f_issue:
+        if "Sí" in f_issue and "No" not in f_issue:
+            df_filtrado_estable = df_filtrado_estable[df_filtrado_estable["issue"] == True]
+        elif "No" in f_issue and "Sí" not in f_issue:
+            df_filtrado_estable = df_filtrado_estable[df_filtrado_estable["issue"] == False]
+
+    # Orden estable por fecha
+    df_filtrado_estable["fecha_hora_dt"] = pd.to_datetime(df_filtrado_estable.get("fecha_hora", ""), errors="coerce")
+    df_filtrado_estable = df_filtrado_estable.sort_values(by="fecha_hora_dt", ascending=False).reset_index(drop=True)
+
+    # 2) Armamos una vista con columnas "dinámicas" SOLO para mostrar (no para editar)
+    # Así no se resetea el editor por cálculos que cambian.
+    ahora_local = datetime.utcnow() - timedelta(hours=7)
+    tmp = df_filtrado_estable.copy()
+
+    # min_final normalizado
+    tmp["min_final"] = pd.to_numeric(tmp.get("min_final", ""), errors="coerce")
+
+    mins = pd.Series(0, index=tmp.index, dtype="int64")
+    mask_valid = tmp["fecha_hora_dt"].notna()
+    diffs = ((ahora_local - tmp.loc[mask_valid, "fecha_hora_dt"]).dt.total_seconds() / 60).astype(int)
+    mins.loc[mask_valid] = diffs.values
+
+    mask_frozen = tmp["min_final"].notna()
+    mins.loc[mask_frozen] = tmp.loc[mask_frozen, "min_final"].astype(int)
+
+    tmp["minutos"] = mins
+
+    def semaforo(m):
+        if m >= 35: return "🔴"
+        if m >= 20: return "🟡"
+        return "🟢"
+    tmp["semaforo"] = tmp["minutos"].apply(semaforo)
+
+    # 3) Dataset del editor: estable + solo columnas necesarias (incluye uuid para mapear, pero lo ocultamos)
+    # Nota: NO incluimos minutos/semaforo en el editor para evitar resets.
+    df_editor = tmp.copy()
+
+    # Asegurar columnas editables
+    for c in EDITABLE_COLS:
+        if c not in df_editor.columns:
+            df_editor[c] = "" if c != "issue" else False
+
+    # Mantener uuid para mapear cambios (no lo mostramos)
+    if "uuid" not in df_editor.columns:
+        df_editor["uuid"] = ""
+
+    # Vista visible del editor (ocultamos uuid y columnas internas)
+    columnas_ocultar_en_editor = ["uuid", "fecha_hora_dt", "min_final"]
+    df_editor_visible = df_editor.drop(columns=columnas_ocultar_en_editor, errors="ignore")
+
+    # 4) Snapshot estable (para detectar cambios correctamente)
+    # Se reinicia cuando NO estás editando o cuando forzas recarga manual.
+    if "editor_snapshot" not in st.session_state or st.session_state.get("forzar_recarga", False) or (not st.session_state.editor_dirty):
+        st.session_state.editor_snapshot = df_editor_visible.copy()
         st.session_state.editor_dirty = False
 
-    st.caption("✍️ Edita directamente: **Almacenista, Status e Issue**. Luego presiona **Guardar cambios de la tabla**.")
+    # 5) Si ya empezaste a editar, usa "working copy" para que no se borre lo escrito
+    if st.session_state.get("editor_dirty", False) and "editor_working" in st.session_state:
+        df_editor_visible_input = st.session_state.editor_working.copy()
+    else:
+        df_editor_visible_input = df_editor_visible.copy()
+
+    # Config columnas
+    column_config = {
+        "almacenista": st.column_config.TextColumn("Almacenista", max_chars=40),
+        "status": st.column_config.SelectboxColumn("Status", options=STATUS_OPCIONES, required=True),
+        "issue": st.column_config.CheckboxColumn("Issue", default=False),
+    }
+
+    st.caption("✍️ Edita **Almacenista / Status / Issue**. (Se guarda con el botón).")
 
     editado = st.data_editor(
-        df_visible,
+        df_editor_visible_input,
         hide_index=True,
         use_container_width=True,
-        disabled=[c for c in df_visible.columns if c not in EDITABLE_COLS],
+        disabled=[c for c in df_editor_visible_input.columns if c not in EDITABLE_COLS],
         column_config=column_config,
         key="editor_requisiciones",
-        on_change=_mark_dirty, # <-- clave para que no sea "aleatorio"
+        on_change=_mark_dirty,
+        num_rows="fixed",
     )
 
-    # Botón para aplicar cambios
+    # Guardar working copy para que no se pierda al click fuera
+    if st.session_state.get("editor_dirty", False):
+        st.session_state.editor_working = editado.copy()
+
+    # Botón cancelar
+    if st.session_state.get("editor_dirty", False):
+        if st.button("↩️ Cancelar edición (descartar cambios)", use_container_width=True):
+            st.session_state.editor_dirty = False
+            st.session_state.pop("editor_working", None)
+            st.session_state.forzar_recarga = True
+            st.rerun()
+
+    # Botón guardar
     if st.button("💾 Guardar cambios de la tabla", use_container_width=True):
 
-        # Si el editor no disparó on_change, normalmente es porque la celda aún no "commit"
-        # (por ejemplo, escribiste y diste enter pero no saliste de la celda).
-        if not st.session_state.editor_dirty:
+        if not st.session_state.get("editor_dirty", False):
             st.info("No se detectaron cambios. Si acabas de escribir, haz click fuera de la celda y vuelve a intentar.")
             st.stop()
 
-        # Comparar contra snapshot, no contra df_visible del rerun actual
         antes = st.session_state.editor_snapshot.copy()
         despues = editado.copy()
 
-        # Normalizar issue a bool
+        # Normalizar issue
         if "issue" in antes.columns:
             antes["issue"] = antes["issue"].astype(bool)
         if "issue" in despues.columns:
             despues["issue"] = despues["issue"].astype(bool)
 
+        # Detectar cambios solo en 3 columnas
         cambios = []
         n = min(len(antes), len(despues))
-
         for i in range(n):
             for col in EDITABLE_COLS:
-                v_old = antes.at[i, col] if col in antes.columns else None
-                v_new = despues.at[i, col] if col in despues.columns else None
-
-                if pd.isna(v_old): v_old = ""
-                if pd.isna(v_new): v_new = ""
-
+                v_old = antes.at[i, col]
+                v_new = despues.at[i, col]
+                if pd.isna(v_old): v_old = "" if col != "issue" else False
+                if pd.isna(v_new): v_new = "" if col != "issue" else False
                 if v_old != v_new:
                     cambios.append((i, col, v_new))
 
@@ -756,28 +806,32 @@ with tab2:
             st.info("No se detectaron cambios (después de comparar).")
             st.session_state.editor_dirty = False
             st.session_state.editor_snapshot = editado.copy()
+            st.session_state.pop("editor_working", None)
             st.stop()
 
-        # Aplicar cambios al CSV completo con LOCK
+        # Aplicar cambios al CSV (solo diffs) usando uuid para mapear
         with FileLock(LOCK_PATH, timeout=10):
             df_all = _read_csv_seguro()
 
-            # Garantizar columnas base
+            # Garantizar columnas
             for c in COLUMNAS_BASE:
                 if c not in df_all.columns:
                     df_all[c] = "" if c != "issue" else False
 
-            # Normalizar issue en df_all
+            # Normalizar issue
             df_all["issue"] = df_all["issue"].astype(str).str.lower().isin(["true", "1", "yes", "si", "sí"])
 
-            # Aplicar cambios
+            # Necesitamos los uuids alineados con las filas visibles (mismo orden que editado)
+            uuids_orden = df_editor["uuid"].astype(str).tolist()
+
             for (i, col, v_new) in cambios:
-                uuid_val = str(df_trabajo.at[i, "uuid"]) if "uuid" in df_trabajo.columns else ""
-                id_val = str(df_trabajo.at[i, "ID"]) if "ID" in df_trabajo.columns else ""
+                uuid_val = uuids_orden[i] if i < len(uuids_orden) else ""
 
                 if uuid_val and "uuid" in df_all.columns:
                     idx = df_all.index[df_all["uuid"].astype(str) == uuid_val]
                 else:
+                    # fallback por ID si algo raro
+                    id_val = str(df_editor.loc[i, "ID"]) if "ID" in df_editor.columns else ""
                     idx = df_all.index[df_all["ID"].astype(str) == id_val]
 
                 if len(idx) == 0:
@@ -785,26 +839,26 @@ with tab2:
 
                 j = idx[0]
 
-                if col == "status":
-                    estados_finales = ["Entregado", "Cancelado", "No encontrado"]
-                    df_all.loc[j, "status"] = str(v_new)
-
-                    # Congelar min_final si llega a estado final
-                    if str(v_new) in estados_finales:
-                        min_final_actual = str(df_all.loc[j, "min_final"]).strip()
-                        if min_final_actual in ["", "None", "nan"]:
-                            fecha_dt = pd.to_datetime(df_all.loc[j, "fecha_hora"], errors="coerce")
-                            if pd.notna(fecha_dt):
-                                ahora_local = datetime.utcnow() - timedelta(hours=7)
-                                df_all.loc[j, "min_final"] = str(int((ahora_local - fecha_dt).total_seconds() / 60))
-                    else:
-                        df_all.loc[j, "min_final"] = ""
-
-                elif col == "almacenista":
+                if col == "almacenista":
                     df_all.loc[j, "almacenista"] = str(v_new).strip()
 
                 elif col == "issue":
                     df_all.loc[j, "issue"] = bool(v_new)
+
+                elif col == "status":
+                    nuevo_status = str(v_new)
+                    df_all.loc[j, "status"] = nuevo_status
+
+                    # Congelar min_final si entra a estado final
+                    if nuevo_status in ESTADOS_FINALES:
+                        min_final_actual = str(df_all.loc[j, "min_final"]).strip()
+                        if min_final_actual in ["", "None", "nan"]:
+                            fecha_dt = pd.to_datetime(df_all.loc[j, "fecha_hora"], errors="coerce")
+                            if pd.notna(fecha_dt):
+                                ahora_local2 = datetime.utcnow() - timedelta(hours=7)
+                                df_all.loc[j, "min_final"] = str(int((ahora_local2 - fecha_dt).total_seconds() / 60))
+                    else:
+                        df_all.loc[j, "min_final"] = ""
 
             # Guardado atómico
             tmp_path = CSV_PATH + ".tmp"
@@ -813,11 +867,12 @@ with tab2:
 
         st.success("✅ Cambios guardados.")
 
-        # Reset snapshot + dirty para evitar falsos positivos
-        st.session_state.editor_snapshot = editado.copy()
+        # Reset editor state
         st.session_state.editor_dirty = False
+        st.session_state.editor_snapshot = editado.copy()
+        st.session_state.pop("editor_working", None)
 
-        # Forzar recarga del cache y refrescar la vista
+        # Fuerza recarga para que se vea lo recién guardado
         st.session_state.forzar_recarga = True
         st.rerun()
 
@@ -850,6 +905,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
