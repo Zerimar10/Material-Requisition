@@ -875,7 +875,6 @@ with tab2:
         # Fuerza recarga para que se vea lo recién guardado
         st.session_state.forzar_recarga = True
         st.rerun()
-
 # ============================================
 # 🔒 EVITAR QUE STREAMLIT SUBA EL SCROLL AL EDITAR
 # ============================================
@@ -905,6 +904,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
