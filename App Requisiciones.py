@@ -625,6 +625,21 @@ with tab2:
             df_filtrado = df_filtrado[df_filtrado["issue"] == False]
 
     # -------------------------------------------
+    # DESCARGAR "EXCEL" (CSV) - historial visible (respeta filtros)
+    # -------------------------------------------
+    df_export = df_filtrado.drop(columns=["fecha_hora_dt"], errors="ignore").copy()
+
+    csv_bytes = df_to_csv_bytes(df_export)
+
+    st.download_button(
+        label="📥 Descargar Excel",
+        data=csv_bytes,
+        file_name=f"requisiciones_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv",
+        mime="text/csv",
+        use_container_width=True
+    )
+
+    # -------------------------------------------
     # TABLA PRINCIPAL (solo lectura)
     # -------------------------------------------
 
@@ -734,6 +749,8 @@ with tab2:
                             df_all.loc[j, "issue"] = bool(nuevo_issue)
 
                             # Guardado atómico
+                            crear_backup_csv("pre_edicion")
+                            
                             tmp_path = CSV_PATH + ".tmp"
                             df_all.to_csv(tmp_path, index=False, encoding="utf-8-sig")
                             os.replace(tmp_path, CSV_PATH)
@@ -778,6 +795,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 window.addEventListener('load', restoreScroll);
 </script>
 """, unsafe_allow_html=True)
+
 
 
 
